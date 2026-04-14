@@ -1,0 +1,21 @@
+# --- OS Trash ---
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# --- Linux Junk ---
+*~
+*.swp
+*.tmp
+
+# --- Editor/IDE ---
+.vscode/
+.cursor/
+.idea/
+.project
+.settings/
+
+# --- Project Specific ---
+# Jaga-jaga kalau lu bikin file rahasia buat API Key
+config.js
+.env
