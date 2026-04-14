@@ -487,19 +487,21 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0,0,0,0.8);
+            background: rgba(0,0,0,0.5);
             backdrop-filter: blur(4px);
-            z-index: 300;
+            z-index: 200;
             display: flex;
             align-items: center;
             justify-content: center;
             visibility: hidden;
             opacity: 0;
             transition: 0.2s;
+            pointer-events: none;
         }
         .modal-overlay.active {
             visibility: visible;
             opacity: 1;
+            pointer-events: auto;
         }
         .modal-content {
             background: #111218;
