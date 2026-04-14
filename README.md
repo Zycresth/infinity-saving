@@ -18,7 +18,8 @@ Developed by **Zycresth** & **Fahmi-astronot**.
 
 ## 🛠️ Tech Stack
 * **Core:** HTML5, CSS3 (Modern Flex/Grid), Vanilla JavaScript.
-* **Libraries:** * [Chart.js](https://www.chartjs.org/) (Data Visualization)
+* **Libraries:** 
+    * [Chart.js](https://www.chartjs.org/) (Data Visualization)
     * [Bcrypt.js](https://github.com/dcodeIO/bcrypt.js/) (Security/Hashing)
     * [Canvas-Confetti](https://github.com/catdad/canvas-confetti) (UX/Effects)
     * [jsPDF](https://github.com/parallax/jsPDF) & [html2canvas](https://html2canvas.hertzen.com/) (Reporting)
