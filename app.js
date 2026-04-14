@@ -158,6 +158,10 @@
             loadingTagline: '\u2726 Mengaktifkan Nebula Tabungan \u2726',
             typingPhrases: ['Ayo Nabung\u2022', 'Ayo Mulai\u2022', 'Ayo Membeli Barang Yang Kamu Inginkan\u2022', 'Ayo Wujudkan Mimpi\u2022', 'Ayo Bebas Finansial\u2022', 'Ayo Disiplin\u2022'],
             langLabel: 'Bahasa',
+            currencyLabel: 'Mata Uang',
+            selectCurrency: 'Pilih Mata Uang',
+            editGoal: 'Edit Target',
+            uploadImage: 'Unggah Gambar',
             login: '\uD83D\uDE80 Masuk',
             register: '\u2728 Daftar',
             guest: 'Lanjut sebagai Tamu',
@@ -277,6 +281,10 @@
             loadingTagline: '\u2726 Activating Nebula Savings \u2726',
             typingPhrases: ['Save More\u2022', 'Start Now\u2022', 'Buy What You Love\u2022', 'Make Dreams Real\u2022', 'Financial Freedom\u2022', 'Stay Disciplined\u2022'],
             langLabel: 'Language',
+            currencyLabel: 'Currency',
+            selectCurrency: 'Select Currency',
+            editGoal: 'Edit Goal',
+            uploadImage: 'Upload Image',
             login: '\uD83D\uDE80 Sign in',
             register: '\u2728 Register',
             guest: 'Continue as guest',
@@ -392,6 +400,10 @@
             loadingTagline: '\u2726 Mengaktifkan Simpanan Nebula \u2726',
             typingPhrases: ['Jom Simpan\u2022', 'Mula Sekarang\u2022', 'Beli Barang Idaman\u2022', 'Wujudkan Impian\u2022', 'Bebas Kewangan\u2022', 'Berdisiplin\u2022'],
             langLabel: 'Bahasa',
+            currencyLabel: 'Mata Wang',
+            selectCurrency: 'Pilih Mata Wang',
+            editGoal: 'Sunting Sasaran',
+            uploadImage: 'Muat Naik Gambar',
             login: '\uD83D\uDE80 Log masuk',
             register: '\u2728 Daftar',
             guest: 'Teruskan sebagai tetamu',
@@ -617,6 +629,8 @@
         if (sidebarLangSel) sidebarLangSel.value = currentLang;
         const sidebarLangLbl = document.getElementById('sidebarLangLabel');
         if (sidebarLangLbl) sidebarLangLbl.textContent = t('langLabel');
+        const sidebarCurrencyLbl = document.getElementById('sidebarCurrencyLabel');
+        if (sidebarCurrencyLbl) sidebarCurrencyLbl.textContent = t('currencyLabel');
         const sidebarDarkLbl = document.getElementById('sidebarDarkModeLabel');
         if (sidebarDarkLbl) sidebarDarkLbl.textContent = t('sidebarDarkMode');
         const sidebarDarkToggle = document.getElementById('sidebarDarkModeToggle');
@@ -1038,7 +1052,7 @@
             const editBtn = document.createElement('button');
             editBtn.className = 'edit-btn';
             editBtn.type = 'button';
-            editBtn.textContent = '✏️ Edit';
+            editBtn.textContent = '✏️ ' + t('editGoal');
             editBtn.addEventListener('click', function () { openEditTargetModal(target.id); });
             leftActions.appendChild(editBtn);
 
