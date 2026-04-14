@@ -2,11 +2,19 @@
     let targets = [];
     let transactions = [];
     let currentUser = null;
-    let settings = { darkMode: true };
+    let settings = { darkMode: true, currency: 'IDR' };
 
     const ACCOUNTS_KEY = 'nabung_accounts';
     const APP_STATE_KEY = 'nabung_app_state';
     const MIN_PASS_LEN = 4;
+
+    // Currency configuration
+    const CURRENCY_CONFIG = {
+        IDR: { symbol: 'Rp', locale: 'id-ID', decimal: 0 },
+        USD: { symbol: '$', locale: 'en-US', decimal: 2 },
+        EUR: { symbol: '€', locale: 'de-DE', decimal: 2 },
+        JPY: { symbol: '¥', locale: 'ja-JP', decimal: 0 }
+    };
     // Optimized bcrypt rounds for mobile performance (lower rounds = faster on mobile)
     // Using 8 rounds instead of 10 for better mobile performance while maintaining security
     const BCRYPT_ROUNDS = 8;
@@ -825,7 +833,9 @@
         if(storedSettings) {
             try {
                 const parsed = JSON.parse(storedSettings);
-                if (parsed && typeof parsed === 'object') settings = parsed;
+                if (parsed && typeof parsed === 'object') {
+                    settings = Object.assign({ darkMode: true, currency: 'IDR' }, parsed);
+                }
             } catch (e) {}
         }
         applyTheme();
@@ -843,7 +853,12 @@
         else document.body.classList.add('light');
     }
 
-    function formatRupiah(num) { return num.toLocaleString('id-ID'); }
+    function formatValue(num) {
+        const curr = settings.currency || 'IDR';
+        const config = CURRENCY_CONFIG[curr] || CURRENCY_CONFIG.IDR;
+        return config.symbol + ' ' + num.toLocaleString(config.locale, { minimumFractionDigits: config.decimal, maximumFractionDigits: config.decimal });
+    }
+    function formatRupiah(num) { return formatValue(num); }
     function escapeHtml(str) { if(!str) return ''; return str.replace(/[&<>]/g, function(m){ return m==='&'?'&amp;': m==='<'?'&lt;':'&gt;'; }); }
     function sanitizeTextInput(value, maxLen) {
         const raw = String(value ?? '');
@@ -959,6 +974,20 @@
             card.className = 'target-card';
             card.dataset.id = String(target.id);
 
+            // Image or Icon display
+            if (target.image) {
+                const img = document.createElement('img');
+                img.className = 'target-card-image';
+                img.src = target.image;
+                img.alt = target.name || '';
+                card.appendChild(img);
+            } else {
+                const iconFallback = document.createElement('div');
+                iconFallback.className = 'target-card-icon-fallback';
+                iconFallback.textContent = '🎯';
+                card.appendChild(iconFallback);
+            }
+
             const title = document.createElement('h3');
             title.textContent = target.name || '-';
             card.appendChild(title);
@@ -971,7 +1000,8 @@
             if (target.schedule) {
                 const scheduleInfo = document.createElement('div');
                 scheduleInfo.className = 'schedule-badge';
-                scheduleInfo.textContent = `📅 ${getScheduleLabel(target.schedule)} ${target.routineAmount ? 'Rp ' + formatRupiah(target.routineAmount) : ''}`;
+                const currSymbol = CURRENCY_CONFIG[settings.currency]?.symbol || 'Rp';
+                scheduleInfo.textContent = `📅 ${getScheduleLabel(target.schedule)} ${target.routineAmount ? currSymbol + ' ' + formatRupiah(target.routineAmount) : ''}`;
                 card.appendChild(scheduleInfo);
             }
 
@@ -983,8 +1013,9 @@
             progressBar.appendChild(progressFill);
             card.appendChild(progressBar);
 
+            const currSym = CURRENCY_CONFIG[settings.currency]?.symbol || 'Rp';
             const amountLine = document.createElement('div');
-            amountLine.textContent = `Rp ${formatRupiah(target.collected)} / Rp ${formatRupiah(target.targetNominal)} (${percent.toFixed(1)}%)`;
+            amountLine.textContent = `${currSym} ${formatRupiah(target.collected)} / ${currSym} ${formatRupiah(target.targetNominal)} (${percent.toFixed(1)}%)`;
             card.appendChild(amountLine);
 
             if (remainingDays !== null) {
@@ -996,9 +1027,20 @@
             const actions = document.createElement('div');
             actions.className = 'card-actions';
             actions.style.display = 'flex';
-            actions.style.justifyContent = 'flex-end';
-            actions.style.gap = '10px';
+            actions.style.justifyContent = 'space-between';
+            actions.style.gap = '8px';
             actions.style.marginTop = '12px';
+
+            const leftActions = document.createElement('div');
+            leftActions.style.display = 'flex';
+            leftActions.style.gap = '8px';
+
+            const editBtn = document.createElement('button');
+            editBtn.className = 'edit-btn';
+            editBtn.type = 'button';
+            editBtn.textContent = '✏️ Edit';
+            editBtn.addEventListener('click', function () { openEditTargetModal(target.id); });
+            leftActions.appendChild(editBtn);
 
             const setorBtn = document.createElement('button');
             setorBtn.className = 'icon-btn setor-btn';
@@ -1006,7 +1048,13 @@
             setorBtn.type = 'button';
             setorBtn.textContent = t('btnDeposit');
             setorBtn.addEventListener('click', function () { openSetorModal(target.id); });
-            actions.appendChild(setorBtn);
+            leftActions.appendChild(setorBtn);
+
+            actions.appendChild(leftActions);
+
+            const rightActions = document.createElement('div');
+            rightActions.style.display = 'flex';
+            rightActions.style.gap = '8px';
 
             if (!target.completed) {
                 const completeBtn = document.createElement('button');
@@ -1015,12 +1063,13 @@
                 completeBtn.type = 'button';
                 completeBtn.textContent = t('btnComplete');
                 completeBtn.addEventListener('click', function () { completeTarget(target.id); });
-                actions.appendChild(completeBtn);
+                rightActions.appendChild(completeBtn);
             } else {
                 const done = document.createElement('span');
                 done.textContent = t('statusDone');
-                actions.appendChild(done);
+                rightActions.appendChild(done);
             }
+            actions.appendChild(rightActions);
             card.appendChild(actions);
             frag.appendChild(card);
         });
@@ -1044,13 +1093,14 @@
         if(!target) return;
         const modal = document.getElementById('globalModal');
         const modalContent = document.getElementById('modalContent');
+        const currSym = CURRENCY_CONFIG[settings.currency]?.symbol || 'Rp';
         modalContent.innerHTML = '';
         const title = document.createElement('h3');
         title.textContent = tWithParams('modalSetorTitle', { name: target.name });
         const amountInput = document.createElement('input');
         amountInput.type = 'number';
         amountInput.id = 'setorAmount';
-        amountInput.placeholder = t('setorAmountPlaceholder');
+        amountInput.placeholder = `${currSym} ${t('setorAmountPlaceholder')}`;
         const noteInput = document.createElement('input');
         noteInput.type = 'text';
         noteInput.id = 'setorNote';
@@ -1088,15 +1138,51 @@
         document.getElementById('closeModalBtn').onclick = () => modal.classList.remove('active');
     }
 
+    // Image compression helper (resize + quality reduction for localStorage efficiency)
+    function compressImageToBase64(file, maxWidth = 400, maxHeight = 300, quality = 0.7) {
+        return new Promise(function(resolve, reject) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const img = new Image();
+                img.onload = function() {
+                    const canvas = document.createElement('canvas');
+                    let width = img.width;
+                    let height = img.height;
+                    if (width > maxWidth) {
+                        height = Math.floor(height * (maxWidth / width));
+                        width = maxWidth;
+                    }
+                    if (height > maxHeight) {
+                        width = Math.floor(width * (maxHeight / height));
+                        height = maxHeight;
+                    }
+                    canvas.width = width;
+                    canvas.height = height;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, width, height);
+                    resolve(canvas.toDataURL('image/jpeg', quality));
+                };
+                img.onerror = reject;
+                img.src = e.target.result;
+            };
+            reader.onerror = reject;
+            reader.readAsDataURL(file);
+        });
+    }
+
     function openAddTargetModal() {
         const modal = document.getElementById('globalModal');
         const modalContent = document.getElementById('modalContent');
+        const currSym = CURRENCY_CONFIG[settings.currency]?.symbol || 'Rp';
         modalContent.innerHTML = `
             <h3>${escapeHtml(t('addTargetTitle'))}</h3>
             <input id="targetName" placeholder="${escapeHtml(t('targetNamePlaceholder'))}" style="display:block;width:100%;margin-bottom:10px;" />
             <label for="targetDesc" style="display:block;text-align:left;margin-bottom:5px;margin-top:2px;">${escapeHtml(t('targetDescLabel'))}</label>
             <textarea id="targetDesc" placeholder="${escapeHtml(t('targetDescPlaceholder'))}" style="display:block;width:100%;margin-bottom:10px;"></textarea>
-            <input id="targetAmount" type="number" placeholder="${escapeHtml(t('targetAmountPlaceholder'))}" style="display:block;width:100%;margin-bottom:10px;" />
+            <label class="image-upload-label" for="targetImage">${escapeHtml('Upload Gambar (opsional)')}</label>
+            <input id="targetImage" type="file" accept="image/*" style="display:block;width:100%;margin-bottom:10px;" />
+            <div id="imagePreviewContainer" class="image-preview-container" style="display:none;"></div>
+            <input id="targetAmount" type="number" placeholder="${currSym} ${escapeHtml(t('targetAmountPlaceholder'))}" style="display:block;width:100%;margin-bottom:10px;" />
             <select id="targetSchedule" style="display:block;width:100%;margin-bottom:10px;">
                 <option value="daily">${escapeHtml(t('scheduleDaily'))}</option>
                 <option value="monday">${escapeHtml(t('scheduleMonday'))}</option><option value="tuesday">${escapeHtml(t('scheduleTuesday'))}</option>
@@ -1107,12 +1193,34 @@
                 <option value="weekend">${escapeHtml(t('scheduleWeekend'))}</option>
                 <option value="flexible">${escapeHtml(t('scheduleFlexible'))}</option>
             </select>
-            <input id="routineAmount" type="number" placeholder="${escapeHtml(t('routineAmountPlaceholder'))}" style="display:block;width:100%;margin-bottom:10px;" />
+            <input id="routineAmount" type="number" placeholder="${currSym} ${escapeHtml(t('routineAmountPlaceholder'))}" style="display:block;width:100%;margin-bottom:10px;" />
             <input id="targetDeadline" type="date" placeholder="${escapeHtml(t('deadlinePlaceholder'))}" style="display:block;width:100%;margin-bottom:10px;" />
             <button class="btn-primary" id="createTargetBtn">${escapeHtml(t('createTargetBtn'))}</button>
             <button class="btn-outline" id="cancelModalBtn">${escapeHtml(t('cancelBtn'))}</button>
         `;
         modal.classList.add('active');
+        
+        // Image preview handler
+        const imageInput = document.getElementById('targetImage');
+        const previewContainer = document.getElementById('imagePreviewContainer');
+        let currentBase64Image = null;
+        imageInput.addEventListener('change', function() {
+            const file = this.files[0];
+            if (file) {
+                compressImageToBase64(file).then(function(base64) {
+                    currentBase64Image = base64;
+                    previewContainer.innerHTML = `<img src="${base64}" class="image-preview-thumb" alt="Preview" />`;
+                    previewContainer.style.display = 'block';
+                }).catch(function(err) {
+                    console.error('Image compression failed:', err);
+                });
+            } else {
+                currentBase64Image = null;
+                previewContainer.style.display = 'none';
+                previewContainer.innerHTML = '';
+            }
+        });
+        
         document.getElementById('createTargetBtn').onclick = () => {
             const name = sanitizeTextInput(document.getElementById('targetName').value, 80);
             const desc = sanitizeTextInput(document.getElementById('targetDesc').value, 300);
@@ -1126,6 +1234,7 @@
                 id: newId, name, desc, targetNominal: nominal, collected: 0,
                 deadline: deadline || null, completed: false, schedule: schedule,
                 routineAmount: isNaN(routineAmount) ? 0 : routineAmount,
+                image: currentBase64Image || null,
                 createdAt: new Date().toISOString()
             });
             saveTargets();
@@ -1134,6 +1243,89 @@
             showToast(tWithParams('createTargetSuccess', { name: name }));
         };
         document.getElementById('cancelModalBtn').onclick = () => modal.classList.remove('active');
+    }
+
+    function openEditTargetModal(targetId) {
+        const target = targets.find(t => t.id === targetId);
+        if (!target) return;
+        
+        const modal = document.getElementById('globalModal');
+        const modalContent = document.getElementById('modalContent');
+        const currSym = CURRENCY_CONFIG[settings.currency]?.symbol || 'Rp';
+        modalContent.innerHTML = `
+            <h3>✏️ Edit Target: ${escapeHtml(target.name)}</h3>
+            <input id="editTargetName" value="${escapeHtml(target.name)}" style="display:block;width:100%;margin-bottom:10px;" />
+            <label for="editTargetDesc" style="display:block;text-align:left;margin-bottom:5px;margin-top:2px;">${escapeHtml(t('targetDescLabel'))}</label>
+            <textarea id="editTargetDesc" style="display:block;width:100%;margin-bottom:10px;">${escapeHtml(target.desc || '')}</textarea>
+            <label class="image-upload-label" for="editTargetImage">Ganti Gambar (opsional)</label>
+            <input id="editTargetImage" type="file" accept="image/*" style="display:block;width:100%;margin-bottom:10px;" />
+            <div id="editImagePreviewContainer" class="image-preview-container"></div>
+            <input id="editTargetAmount" type="number" value="${target.targetNominal}" placeholder="${currSym} ${escapeHtml(t('targetAmountPlaceholder'))}" style="display:block;width:100%;margin-bottom:10px;" />
+            <select id="editTargetSchedule" style="display:block;width:100%;margin-bottom:10px;">
+                <option value="daily"${target.schedule === 'daily' ? ' selected' : ''}>${escapeHtml(t('scheduleDaily'))}</option>
+                <option value="monday"${target.schedule === 'monday' ? ' selected' : ''}>${escapeHtml(t('scheduleMonday'))}</option>
+                <option value="tuesday"${target.schedule === 'tuesday' ? ' selected' : ''}>${escapeHtml(t('scheduleTuesday'))}</option>
+                <option value="wednesday"${target.schedule === 'wednesday' ? ' selected' : ''}>${escapeHtml(t('scheduleWednesday'))}</option>
+                <option value="thursday"${target.schedule === 'thursday' ? ' selected' : ''}>${escapeHtml(t('scheduleThursday'))}</option>
+                <option value="friday"${target.schedule === 'friday' ? ' selected' : ''}>${escapeHtml(t('scheduleFriday'))}</option>
+                <option value="saturday"${target.schedule === 'saturday' ? ' selected' : ''}>${escapeHtml(t('scheduleSaturday'))}</option>
+                <option value="sunday"${target.schedule === 'sunday' ? ' selected' : ''}>${escapeHtml(t('scheduleSunday'))}</option>
+                <option value="weekdays"${target.schedule === 'weekdays' ? ' selected' : ''}>${escapeHtml(t('scheduleWeekdays'))}</option>
+                <option value="weekend"${target.schedule === 'weekend' ? ' selected' : ''}>${escapeHtml(t('scheduleWeekend'))}</option>
+                <option value="flexible"${target.schedule === 'flexible' ? ' selected' : ''}>${escapeHtml(t('scheduleFlexible'))}</option>
+            </select>
+            <input id="editRoutineAmount" type="number" value="${target.routineAmount || ''}" placeholder="${currSym} ${escapeHtml(t('routineAmountPlaceholder'))}" style="display:block;width:100%;margin-bottom:10px;" />
+            <input id="editTargetDeadline" type="date" value="${target.deadline || ''}" style="display:block;width:100%;margin-bottom:10px;" />
+            <button class="btn-primary" id="saveEditTargetBtn">💾 Simpan Perubahan</button>
+            <button class="btn-outline" id="cancelEditModalBtn">${escapeHtml(t('cancelBtn'))}</button>
+        `;
+        modal.classList.add('active');
+        
+        // Show existing image preview
+        const editPreviewContainer = document.getElementById('editImagePreviewContainer');
+        let editBase64Image = target.image || null;
+        if (editBase64Image) {
+            editPreviewContainer.innerHTML = `<img src="${editBase64Image}" class="image-preview-thumb" alt="Current Image" />`;
+        }
+        
+        // Handle new image upload
+        const editImageInput = document.getElementById('editTargetImage');
+        editImageInput.addEventListener('change', function() {
+            const file = this.files[0];
+            if (file) {
+                compressImageToBase64(file).then(function(base64) {
+                    editBase64Image = base64;
+                    editPreviewContainer.innerHTML = `<img src="${base64}" class="image-preview-thumb" alt="New Preview" />`;
+                }).catch(function(err) {
+                    console.error('Image compression failed:', err);
+                });
+            }
+        });
+        
+        document.getElementById('saveEditTargetBtn').onclick = () => {
+            const name = sanitizeTextInput(document.getElementById('editTargetName').value, 80);
+            const desc = sanitizeTextInput(document.getElementById('editTargetDesc').value, 300);
+            const nominal = parseFloat(document.getElementById('editTargetAmount').value);
+            const schedule = document.getElementById('editTargetSchedule').value;
+            const routineAmount = parseFloat(document.getElementById('editRoutineAmount').value);
+            const deadline = document.getElementById('editTargetDeadline').value;
+            if(!name || isNaN(nominal) || nominal <=0) { alert(t('createTargetInvalid')); return; }
+            
+            // Update existing target
+            target.name = name;
+            target.desc = desc;
+            target.targetNominal = nominal;
+            target.schedule = schedule;
+            target.routineAmount = isNaN(routineAmount) ? 0 : routineAmount;
+            target.deadline = deadline || null;
+            target.image = editBase64Image;
+            
+            saveTargets();
+            renderMainUI();
+            modal.classList.remove('active');
+            showToast('✅ Target diperbarui!');
+        };
+        document.getElementById('cancelEditModalBtn').onclick = () => modal.classList.remove('active');
     }
 
     // ======================= CHAT AI DENGAN PILIHAN MODEL =======================
@@ -1358,7 +1550,8 @@
         document.getElementById('historyBtn').onclick = () => {
             if(transactions.length===0) showModalMsg(t('noHistoryYet'));
             else {
-                let list = transactions.map(tx=>`${new Date(tx.date).toLocaleDateString()} - Rp${formatRupiah(tx.amount)} : ${tx.note||'-'}`).join('\n');
+                const currSym = CURRENCY_CONFIG[settings.currency]?.symbol || 'Rp';
+                let list = transactions.map(tx=>`${new Date(tx.date).toLocaleDateString()} - ${currSym}${formatRupiah(tx.amount)} : ${tx.note||'-'}`).join('\n');
                 showModalMsg(`${t('historyTitle')}\n${list}`);
             }
         };
@@ -1429,6 +1622,15 @@
             };
             fileInput.click();
         };
+        const sidebarCurrencySel = document.getElementById('sidebarCurrencySelect');
+        if (sidebarCurrencySel) {
+            sidebarCurrencySel.value = settings.currency || 'IDR';
+            sidebarCurrencySel.onchange = function (e) {
+                settings.currency = e.target.value;
+                saveSettings();
+                renderMainUI();
+            };
+        }
         const sidebarLangSel = document.getElementById('sidebarLangSelect');
         if (sidebarLangSel) {
             sidebarLangSel.value = currentLang;
@@ -1453,7 +1655,7 @@
             };
         }
         document.getElementById('logoutBtn').onclick = () => { logout(); };
-        document.getElementById('randomChallenge').onclick = () => { const rand = Math.floor(Math.random()*50000)+5000; showModalMsg(tWithParams('randomChallengeMsg', { amount: formatRupiah(rand) })); };
+        document.getElementById('randomChallenge').onclick = () => { const rand = Math.floor(Math.random()*50000)+5000; const currSym = CURRENCY_CONFIG[settings.currency]?.symbol || 'Rp'; showModalMsg(tWithParams('randomChallengeMsg', { amount: currSym + ' ' + formatRupiah(rand) })); };
         document.getElementById('motivationQuote').onclick = () => {
             const quotes = Array.isArray(t('motivationQuotes')) ? t('motivationQuotes') : [];
             const msg = quotes.length ? quotes[Math.floor(Math.random()*quotes.length)] : '';
