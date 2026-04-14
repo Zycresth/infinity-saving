@@ -1,731 +1,3 @@
-<!DOCTYPE html>
-<html lang="id">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>Infinity Saving - Save Your Dreams</title>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1"></script>
-    <script src="https://cdn.jsdelivr.net/npm/bcryptjs@2.4.3/dist/bcrypt.min.js"></script>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: 'Segoe UI', 'Poppins', system-ui, sans-serif;
-        }
-        :root {
-            --bg-dark: #0a0a0f;
-            --bg-card: rgba(20, 20, 30, 0.7);
-            --glow-red: #ff3366;
-            --red-primary: #e63946;
-            --red-hover: #ff5c7a;
-            --text-light: #f0f0f0;
-            --text-dim: #aaa;
-        }
-        body {
-            background: radial-gradient(ellipse at center, #1a0a0a 0%, #000000 100%);
-            min-height: 100vh;
-            color: var(--text-light);
-            overflow-x: hidden;
-        }
-        #loading-screen {
-            position: fixed;
-            inset: 0;
-            width: 100vw;
-            height: 100vh;
-            background: radial-gradient(circle at center, #0a0000, #000);
-            z-index: 1000;
-            display: grid;
-            place-items: center;
-            padding: clamp(16px, 3vw, 36px);
-            overflow: hidden;
-            transition: opacity 1s ease;
-        }
-        .loading-content {
-            width: min(92vw, 680px);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            gap: 14px;
-            padding: clamp(16px, 2.5vw, 28px);
-            border: 1px solid rgba(255, 51, 102, 0.28);
-            border-radius: 28px;
-            background: rgba(15, 15, 25, 0.48);
-            backdrop-filter: blur(10px);
-        }
-        .infinity-container {
-            position: relative;
-            width: min(100%, 560px);
-            aspect-ratio: 4 / 1.6;
-            height: auto;
-        }
-        canvas#infinityCanvas {
-            display: block;
-            width: 100%;
-            height: 100%;
-        }
-        .cosmic-dust {
-            text-align: center;
-            color: var(--text-light);
-            letter-spacing: 0.04em;
-            text-shadow: 0 0 12px rgba(255, 51, 102, 0.45);
-            font-weight: 600;
-        }
-        .glass-card {
-            background: rgba(15, 15, 25, 0.6);
-            backdrop-filter: blur(12px);
-            border: 1px solid rgba(255, 51, 102, 0.3);
-            border-radius: 32px;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-        }
-        #auth-container {
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 20px;
-            background: radial-gradient(ellipse at 30% 40%, #2a0a0a, #000);
-            background-size: 200% 200%;
-            animation: cosmicDrift 20s infinite alternate;
-        }
-        @keyframes cosmicDrift {
-            0% { background-position: 0% 0%;}
-            100% { background-position: 100% 100%;}
-        }
-        .login-card {
-            position: relative;
-            width: 100%;
-            max-width: 480px;
-            padding: 32px 28px;
-            text-align: center;
-        }
-        .typing-area {
-            font-size: 1.9rem;
-            font-weight: bold;
-            min-height: 90px;
-            color: var(--red-primary);
-            text-shadow: 0 0 6px rgba(255,51,102,0.5);
-            margin-bottom: 30px;
-            font-family: monospace;
-        }
-        .btn-primary {
-            background: var(--red-primary);
-            color: white;
-            padding: 14px 24px;
-            border-radius: 60px;
-            font-weight: bold;
-            font-size: 1rem;
-            width: 100%;
-            margin: 8px 0;
-            cursor: pointer;
-            border: none;
-            transition: transform 0.2s;
-        }
-        .btn-primary:hover {
-            transform: scale(1.02);
-            background: #ff4d6d;
-        }
-        .btn-outline {
-            background: transparent;
-            border: 2px solid var(--red-primary);
-            color: var(--red-primary);
-            padding: 12px 24px;
-            border-radius: 60px;
-            font-weight: bold;
-            width: 100%;
-            cursor: pointer;
-        }
-        .btn-ghost {
-            color: var(--text-dim);
-            font-size: 0.8rem;
-            margin-top: 12px;
-            background: none;
-            border: none;
-            cursor: pointer;
-        }
-        .lang-row {
-            margin-top: 20px;
-            text-align: left;
-        }
-        .lang-row label {
-            display: block;
-            font-size: 0.85rem;
-            color: var(--text-dim);
-            margin-bottom: 8px;
-        }
-        .lang-select {
-            margin: 0 !important;
-            cursor: pointer;
-            background: #1e1e2a;
-            border: 1px solid rgba(255, 51, 102, 0.35);
-            border-radius: 60px;
-            padding: 14px 18px;
-            color: var(--text-light);
-            font-weight: 600;
-            width: 100%;
-        }
-        .lang-select:focus {
-            outline: none;
-            border-color: var(--red-primary);
-            box-shadow: 0 0 0 2px rgba(230, 57, 70, 0.25);
-        }
-        .auth-panel {
-            text-align: left;
-        }
-        .auth-panel .field-label {
-            display: block;
-            font-size: 0.8rem;
-            color: var(--text-dim);
-            margin: 10px 0 4px 4px;
-        }
-        .auth-panel input {
-            margin-top: 0;
-        }
-        .auth-switch {
-            width: 100%;
-            margin-top: 14px;
-            background: none;
-            border: none;
-            color: var(--red-primary);
-            cursor: pointer;
-            font-size: 0.9rem;
-            text-decoration: underline;
-            text-underline-offset: 3px;
-        }
-        .auth-switch:hover {
-            color: var(--red-hover);
-        }
-        .auth-error {
-            color: #ff8a9a;
-            font-size: 0.85rem;
-            margin-top: 8px;
-            min-height: 1.2em;
-        }
-        .auth-busy-overlay {
-            display: none;
-            position: absolute;
-            inset: 0;
-            border-radius: 32px;
-            background: rgba(10, 10, 18, 0.82);
-            backdrop-filter: blur(6px);
-            align-items: center;
-            justify-content: center;
-            flex-direction: column;
-            gap: 14px;
-            z-index: 60;
-            pointer-events: all;
-        }
-        .auth-busy-overlay.visible {
-            display: flex;
-        }
-        .auth-busy-inner {
-            text-align: center;
-            padding: 16px;
-        }
-        .auth-busy-spinner {
-            width: 32px;
-            height: 32px;
-            margin: 0 auto 8px;
-            border: 3px solid rgba(255, 51, 102, 0.2);
-            border-top-color: var(--red-primary);
-            border-radius: 50%;
-            animation: authBusySpin 0.75s linear infinite;
-        }
-        @keyframes authBusySpin {
-            to { transform: rotate(360deg); }
-        }
-        .auth-busy-text {
-            color: var(--text-light);
-            font-size: 0.95rem;
-            font-weight: 600;
-        }
-        .legal-footer {
-            margin-top: 20px;
-            padding-top: 16px;
-            border-top: 1px solid rgba(255, 51, 102, 0.28);
-        }
-        .legal-footer-links {
-            display: flex;
-            flex-wrap: wrap;
-            justify-content: center;
-            align-items: center;
-            gap: 6px 10px;
-            font-size: 0.78rem;
-        }
-        .legal-link {
-            background: none;
-            border: none;
-            color: var(--red-primary);
-            cursor: pointer;
-            text-decoration: underline;
-            text-underline-offset: 3px;
-            padding: 0;
-            font: inherit;
-        }
-        .legal-link:hover {
-            color: var(--red-hover);
-        }
-        .legal-sep {
-            color: var(--text-dim);
-            opacity: 0.65;
-            user-select: none;
-        }
-        .legal-modal-body {
-            text-align: left;
-            font-size: 0.88rem;
-            line-height: 1.55;
-            max-height: 52vh;
-            overflow-y: auto;
-            background: #1e1e2a;
-            border: 1px solid rgba(255, 51, 102, 0.35);
-            border-radius: 20px;
-            padding: 16px 18px;
-            margin-top: 10px;
-            color: var(--text-light);
-        }
-        .legal-modal-body p {
-            margin: 0 0 12px;
-        }
-        .legal-modal-body p:last-child {
-            margin-bottom: 0;
-        }
-        .legal-modal-body strong {
-            color: #f0f0f0;
-        }
-        .v-tag { font-size: 0.65rem; color: rgba(255, 51, 102, 0.4); margin-top: 12px; text-align: center; }
-        #main-app {
-            display: none;
-            position: relative;
-            margin-left: 65px;
-            min-height: 100vh;
-            z-index: 100;
-        }
-        #sideRail {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 65px;
-            height: 100vh;
-            background: rgba(12, 12, 18, 0.72);
-            backdrop-filter: blur(12px);
-            border-right: 1px solid rgba(255, 51, 102, 0.2);
-            display: flex;
-            justify-content: center;
-            align-items: flex-start;
-            padding-top: 18px;
-            z-index: 330;
-        }
-        #sidebarOverlay {
-            position: fixed;
-            top: 0;
-            left: 65px;
-            width: calc(100vw - 65px);
-            height: 100vh;
-            background: rgba(0, 0, 0, 0.45);
-            backdrop-filter: blur(2px);
-            opacity: 0;
-            visibility: hidden;
-            transition: opacity 0.2s ease;
-            z-index: 310;
-        }
-        #sidebarOverlay.active {
-            opacity: 1;
-            visibility: visible;
-        }
-        .sidebar {
-            position: fixed;
-            top: 0;
-            left: -340px;
-            width: 320px;
-            height: 100vh;
-            background: rgba(8, 8, 14, 0.95);
-            backdrop-filter: blur(16px);
-            border-right: 1px solid var(--red-primary);
-            z-index: 320;
-            transition: left 0.3s cubic-bezier(0.2, 0.9, 0.4, 1.1);
-            overflow-y: auto;
-            padding: 20px 16px;
-        }
-        .sidebar.open {
-            left: 65px;
-        }
-        .menu-item {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            padding: 10px 12px;
-            margin: 6px 0;
-            border-radius: 24px;
-            background: rgba(255,255,255,0.05);
-            cursor: pointer;
-            transition: 0.2s;
-        }
-        .menu-item:hover {
-            background: rgba(255,51,102,0.2);
-            transform: translateX(4px);
-        }
-        .menu-dropdown {
-            margin-bottom: 10px;
-        }
-        .menu-parent {
-            width: 100%;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 12px;
-            padding: 10px 12px;
-            border: none;
-            border-radius: 16px;
-            background: rgba(255, 255, 255, 0.08);
-            color: var(--text-light);
-            cursor: pointer;
-            text-align: left;
-        }
-        .menu-parent:hover {
-            background: rgba(255,51,102,0.2);
-        }
-        .menu-chevron {
-            transition: transform 0.28s ease;
-            color: var(--red-primary);
-            font-weight: 700;
-        }
-        .menu-dropdown.open .menu-chevron {
-            transform: rotate(180deg);
-        }
-        .menu-submenu {
-            max-height: 0;
-            overflow: hidden;
-            transition: max-height 0.28s ease;
-            margin-top: 6px;
-            padding-left: 10px;
-            border-left: 1px solid rgba(255, 51, 102, 0.25);
-        }
-        .menu-dropdown.open .menu-submenu {
-            max-height: 360px;
-        }
-        .submenu-item {
-            display: block;
-            width: 100%;
-            text-align: left;
-            border: 1px solid rgba(255, 51, 102, 0.2);
-            border-radius: 14px;
-            background: rgba(255, 255, 255, 0.05);
-            color: var(--text-light);
-            padding: 9px 10px;
-            margin: 6px 0;
-            cursor: pointer;
-        }
-        .submenu-item:hover {
-            background: rgba(255, 51, 102, 0.16);
-        }
-        .submenu-field-label {
-            display: block;
-            margin: 8px 0 4px;
-            color: var(--text-dim);
-            font-size: 0.86rem;
-        }
-        .submenu-toggle-row {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            border: 1px solid rgba(255, 51, 102, 0.2);
-            border-radius: 14px;
-            background: rgba(255,255,255,0.05);
-            padding: 8px 10px;
-            margin: 8px 0;
-        }
-        .fab-plus {
-            position: fixed;
-            bottom: 28px;
-            right: 28px;
-            width: 64px;
-            height: 64px;
-            background: var(--red-primary);
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 36px;
-            font-weight: bold;
-            box-shadow: 0 0 20px rgba(255,51,102,0.6);
-            z-index: 150;
-            cursor: pointer;
-            transition: 0.2s;
-        }
-        .fab-plus:hover {
-            transform: scale(1.05);
-        }
-        .targets-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-            gap: 20px;
-            padding: 24px;
-            margin-top: 20px;
-        }
-        .target-card {
-            background: var(--bg-card);
-            backdrop-filter: blur(8px);
-            border-radius: 28px;
-            padding: 18px;
-            border: 1px solid rgba(255,51,102,0.3);
-        }
-        .progress-bar {
-            background: #2a2a3a;
-            border-radius: 20px;
-            height: 12px;
-            overflow: hidden;
-            margin: 12px 0;
-        }
-        .progress-fill {
-            width: 0%;
-            height: 100%;
-            background: linear-gradient(90deg, var(--red-primary), #ff8cae);
-        }
-        .icon-btn {
-            background: rgba(255,255,255,0.1);
-            border-radius: 40px;
-            padding: 8px 12px;
-            cursor: pointer;
-            border: none;
-            color: white;
-        }
-        .modal-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0,0,0,0.8);
-            backdrop-filter: blur(4px);
-            z-index: 300;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            visibility: hidden;
-            opacity: 0;
-            transition: 0.2s;
-        }
-        .modal-overlay.active {
-            visibility: visible;
-            opacity: 1;
-        }
-        .modal-content {
-            background: #111218;
-            border-radius: 40px;
-            max-width: 550px;
-            width: 90%;
-            padding: 24px;
-            border: 1px solid var(--red-primary);
-            max-height: 85vh;
-            overflow-y: auto;
-        }
-        input, select, textarea {
-            background: #1e1e2a;
-            border: 1px solid #ff336655;
-            padding: 12px;
-            border-radius: 28px;
-            color: white;
-            width: 100%;
-            margin: 8px 0;
-        }
-        #hamburgerMenu {
-            position: relative;
-            font-size: 32px;
-            color: #ff3366;
-            cursor: pointer;
-            z-index: 331;
-            width: 44px;
-            height: 44px;
-            border-radius: 12px;
-            background: rgba(255, 255, 255, 0.06);
-            border: 1px solid rgba(255, 51, 102, 0.25);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        body.light {
-            --bg-dark: #f5f0eb;
-            --bg-card: rgba(245, 240, 235, 0.8);
-            --text-light: #1a1a2e;
-            --text-dim: #444;
-            background: #f0e6e0;
-        }
-        body.light .glass-card, body.light .target-card {
-            background: rgba(255,255,245,0.9);
-            color: #111;
-        }
-        .schedule-badge {
-            font-size: 0.75rem;
-            background: rgba(255,51,102,0.2);
-            display: inline-block;
-            padding: 4px 12px;
-            border-radius: 20px;
-            margin-top: 6px;
-        }
-        .chat-messages {
-            height: 300px;
-            overflow-y: auto;
-            background: rgba(0,0,0,0.3);
-            border-radius: 24px;
-            padding: 12px;
-            margin-bottom: 12px;
-            font-size: 14px;
-        }
-        .chat-message {
-            margin-bottom: 12px;
-            padding: 8px 12px;
-            border-radius: 20px;
-            max-width: 85%;
-        }
-        .chat-user {
-            background-color: #ff3366;
-            color: white;
-            margin-left: auto;
-            text-align: right;
-        }
-        .chat-ai {
-            background-color: #2a2a3a;
-            color: #f0f0f0;
-        }
-    </style>
-</head>
-<body>
-
-<div id="loading-screen">
-    <div class="loading-content glass-card">
-        <div class="infinity-container">
-            <canvas id="infinityCanvas"></canvas>
-        </div>
-        <div class="cosmic-dust" id="loadingTagline">✦ Mengaktifkan Nebula Tabungan ✦</div>
-    </div>
-</div>
-
-<div id="auth-container" style="display: none;">
-    <div class="login-card glass-card">
-        <div class="typing-area" id="typingText"></div>
-        <div id="authPanelLogin" class="auth-panel" style="margin: 20px 0;">
-            <label class="field-label" for="loginEmail" id="labelLoginEmail">Email</label>
-            <input type="email" id="loginEmail" autocomplete="username" inputmode="email">
-            <label class="field-label" for="loginPass" id="labelLoginPass">Kata sandi</label>
-            <input type="password" id="loginPass" autocomplete="current-password">
-            <div class="auth-error" id="loginError" aria-live="polite"></div>
-            <button type="button" class="btn-primary" id="btnLogin">🚀 Masuk</button>
-            <button type="button" class="btn-outline" id="btnShowRegister">✨ Daftar</button>
-            <button type="button" class="btn-ghost" id="btnGuest">Lanjut sebagai Tamu</button>
-        </div>
-        <div id="authPanelRegister" class="auth-panel" style="display: none; margin: 20px 0;">
-            <label class="field-label" for="regUsername" id="labelRegUsername">Nama pengguna</label>
-            <input type="text" id="regUsername" autocomplete="username" maxlength="64">
-            <label class="field-label" for="regEmail" id="labelRegEmail">Email</label>
-            <input type="email" id="regEmail" autocomplete="email" inputmode="email">
-            <label class="field-label" for="regPass" id="labelRegPass">Kata sandi</label>
-            <input type="password" id="regPass" autocomplete="new-password">
-            <label class="field-label" for="regConfirm" id="labelRegConfirm">Konfirmasi kata sandi</label>
-            <input type="password" id="regConfirm" autocomplete="new-password">
-            <div class="auth-error" id="registerError" aria-live="polite"></div>
-            <div style="margin: 10px 0 6px; display:flex; gap:10px; align-items:flex-start;">
-                <input type="checkbox" id="agreeTerms" style="width:auto; margin: 4px 0 0; transform: scale(1.05);" />
-                <label for="agreeTerms" id="labelAgreeTerms" style="font-size: 0.82rem; color: var(--text-dim); line-height: 1.35; cursor: pointer;">
-                    Saya sudah membaca dan setuju dengan Syarat Layanan & Kebijakan Privasi.
-                </label>
-            </div>
-            <button type="button" class="btn-primary" id="btnRegisterSubmit">Daftar</button>
-            <button type="button" class="auth-switch" id="btnBackToLogin">Sudah punya akun? Masuk</button>
-        </div>
-        <div class="lang-row">
-            <label for="langSelect" id="langLabel">Bahasa</label>
-            <select id="langSelect" class="lang-select">
-                <option value="id">Bahasa Indonesia</option>
-                <option value="en">English</option>
-                <option value="ms">Bahasa Melayu</option>
-            </select>
-        </div>
-        <div class="legal-footer">
-            <div class="legal-footer-links">
-                <button type="button" class="legal-link" id="linkLegalTos">Terms</button>
-                <span class="legal-sep" aria-hidden="true">·</span>
-                <button type="button" class="legal-link" id="linkLegalPrivacy">Privacy</button>
-                <span class="legal-sep" aria-hidden="true">·</span>
-                <button type="button" class="legal-link" id="linkLegalHelp">Help</button>
-            </div>
-            <div class="v-tag">v2.13.0 | Zycresth x Fahmi-astronot</div>
-        </div>
-        <div id="authBusyOverlay" class="auth-busy-overlay" role="status" aria-live="polite" aria-hidden="true">
-            <div class="auth-busy-inner">
-                <div class="auth-busy-spinner" aria-hidden="true"></div>
-                <div class="auth-busy-text" id="authBusyText"></div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<div id="main-app">
-    <div id="sideRail"></div>
-    <div id="sidebarOverlay" aria-hidden="true"></div>
-    <div class="sidebar" id="sidebar">
-        <div class="menu-header" style="display: flex; justify-content: space-between; margin-bottom: 20px;">
-            <span style="font-weight: bold; color:var(--red-primary)">✦ INFINITY SAVING ✦</span>
-            <button id="closeSidebar" style="color:white; font-size:24px; background:none; border:none;">&times;</button>
-        </div>
-        <div class="menu-dropdown open" id="aiMenuGroup">
-            <button type="button" class="menu-parent" data-dropdown-toggle="aiSubmenu">
-                <span id="menuAiHeader">🧠 AI & Asisten</span><span class="menu-chevron">⌄</span>
-            </button>
-            <div class="menu-submenu" id="aiSubmenu">
-                <button type="button" class="submenu-item" id="aiChatBtn">💬 Chat AI (Gemini/Grok/HF)</button>
-                <button type="button" class="submenu-item" id="prediksiBtn">📈 Prediksi Target</button>
-            </div>
-        </div>
-        <div class="menu-section">
-            <div class="menu-item" id="showChartBtn">📊 Grafik Target</div>
-        </div>
-        <div class="menu-dropdown" id="dataMenuGroup">
-            <button type="button" class="menu-parent" data-dropdown-toggle="dataSubmenu">
-                <span id="menuDataHeader">💰 Riwayat & Data</span><span class="menu-chevron">⌄</span>
-            </button>
-            <div class="menu-submenu" id="dataSubmenu">
-                <button type="button" class="submenu-item" id="historyBtn">📜 Histori Setoran</button>
-                <button type="button" class="submenu-item" id="exportJsonBtn">💾 Export/Import JSON</button>
-            </div>
-        </div>
-        <div class="menu-dropdown" id="settingsMenuGroup">
-            <button type="button" class="menu-parent" data-dropdown-toggle="settingsSubmenu">
-                <span id="menuSettingHeader">⚙️ App Settings</span><span class="menu-chevron">⌄</span>
-            </button>
-            <div class="menu-submenu" id="settingsSubmenu">
-                <label class="submenu-field-label" for="sidebarLangSelect" id="sidebarLangLabel">Bahasa</label>
-                <select id="sidebarLangSelect" class="lang-select">
-                    <option value="id">Bahasa Indonesia</option>
-                    <option value="en">English</option>
-                    <option value="ms">Bahasa Melayu</option>
-                </select>
-                <div class="submenu-toggle-row">
-                    <span id="sidebarDarkModeLabel">Mode Gelap</span>
-                    <input type="checkbox" id="sidebarDarkModeToggle" style="width:auto; margin:0; transform:scale(1.1);">
-                </div>
-                <button type="button" class="submenu-item" id="resetAllDataBtn">Hapus Semua Data</button>
-            </div>
-        </div>
-        <div class="menu-section">
-            <div class="menu-item" id="logoutBtn">🚪 Logout</div>
-            <div class="menu-item" id="randomChallenge">🎲 Tantangan Acak</div>
-            <div class="menu-item" id="motivationQuote">💬 Quote Hari Ini</div>
-        </div>
-    </div>
-    <div class="fab-plus" id="fabAddTarget">+</div>
-    <div id="emptyStateMsg" style="padding: 20px; text-align: center; color: gray;">✨ Belum ada target nabung. Klik tombol + untuk memulai ✨</div>
-    <div class="targets-grid" id="targetsGrid"></div>
-</div>
-
-<div id="globalModal" class="modal-overlay">
-    <div class="modal-content" id="modalContent"></div>
-</div>
-
-<script>
     // ======================= DATA GLOBAL =======================
     let targets = [];
     let transactions = [];
@@ -735,14 +7,26 @@
     const ACCOUNTS_KEY = 'nabung_accounts';
     const APP_STATE_KEY = 'nabung_app_state';
     const MIN_PASS_LEN = 4;
-    const BCRYPT_ROUNDS = 10;
-
+    // Optimized bcrypt rounds for mobile performance (lower rounds = faster on mobile)
+    // Using 8 rounds instead of 10 for better mobile performance while maintaining security
+    const BCRYPT_ROUNDS = 8;
+    
+    // Performance optimization: Cache bcrypt instance to avoid repeated lookups
+    let cachedBcrypt = null;
+    
     function isBcryptHash(str) {
         return typeof str === 'string' && /^\$2[aby]\$\d{2}\$/.test(str);
     }
     function getBcrypt() {
-        if (typeof dcodeIO !== 'undefined' && dcodeIO.bcrypt) return dcodeIO.bcrypt;
-        if (typeof bcrypt !== 'undefined') return bcrypt;
+        if (cachedBcrypt) return cachedBcrypt;
+        if (typeof dcodeIO !== 'undefined' && dcodeIO.bcrypt) {
+            cachedBcrypt = dcodeIO.bcrypt;
+            return cachedBcrypt;
+        }
+        if (typeof bcrypt !== 'undefined') {
+            cachedBcrypt = bcrypt;
+            return cachedBcrypt;
+        }
         return null;
     }
     function ensureBcryptLoaded() {
@@ -752,9 +36,10 @@
         return new Promise(function (resolve, reject) {
             const bc = getBcrypt();
             if (!bc) {
-                reject(new Error('bcrypt'));
+                reject(new Error('bcrypt not loaded'));
                 return;
             }
+            // Use async hashing with optimized rounds for mobile
             bc.hash(plain, BCRYPT_ROUNDS, function (err, hash) {
                 if (err) reject(err);
                 else resolve(hash);
@@ -765,7 +50,7 @@
         return new Promise(function (resolve, reject) {
             const bc = getBcrypt();
             if (!bc) {
-                reject(new Error('bcrypt'));
+                reject(new Error('bcrypt not loaded'));
                 return;
             }
             bc.compare(plain, hash, function (err, res) {
@@ -1607,6 +892,11 @@
         const modalContent = document.getElementById('modalContent');
         if (isHtml) {
             modalContent.innerHTML = content;
+            // Fix for Chart Close button: Attach event listener to closeChartModal if it exists
+            const chartCloseBtn = document.getElementById('closeChartModal');
+            if (chartCloseBtn) {
+                chartCloseBtn.addEventListener('click', () => modal.classList.remove('active'));
+            }
         } else {
             modalContent.innerHTML = '';
             const msg = document.createElement('div');
@@ -2079,6 +1369,65 @@
             a.download = 'nabung_backup.json';
             a.click();
             showToast(t('exportSuccess'));
+            // Add import functionality with validation
+            const fileInput = document.createElement('input');
+            fileInput.type = 'file';
+            fileInput.accept = '.json,application/json';
+            fileInput.style.display = 'none';
+            document.body.appendChild(fileInput);
+            fileInput.onchange = function(e) {
+                const file = e.target.files[0];
+                if (!file) return;
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    try {
+                        const importedData = JSON.parse(event.target.result);
+                        // Validate the structure
+                        if (!importedData || typeof importedData !== 'object') {
+                            throw new Error('Invalid file format');
+                        }
+                        if (!Array.isArray(importedData.targets)) {
+                            throw new Error('Missing targets array');
+                        }
+                        if (!Array.isArray(importedData.transactions)) {
+                            throw new Error('Missing transactions array');
+                        }
+                        // Validate each target
+                        for (let i = 0; i < importedData.targets.length; i++) {
+                            const t = importedData.targets[i];
+                            if (!t.name || typeof t.targetNominal !== 'number') {
+                                throw new Error(`Invalid target at index ${i}`);
+                            }
+                        }
+                        // Validate each transaction
+                        for (let i = 0; i < importedData.transactions.length; i++) {
+                            const tx = importedData.transactions[i];
+                            if (typeof tx.amount !== 'number' || !tx.date) {
+                                throw new Error(`Invalid transaction at index ${i}`);
+                            }
+                        }
+                        // If validation passes, import the data
+                        targets = importedData.targets;
+                        transactions = importedData.transactions;
+                        if (importedData.settings && typeof importedData.settings === 'object') {
+                            settings = { ...settings, ...importedData.settings };
+                        }
+                        syncVaultFromMemory();
+                        renderMainUI();
+                        showToast('✅ Import berhasil!');
+                    } catch (err) {
+                        showModalMsg('❌ File tidak valid: ' + err.message);
+                    } finally {
+                        document.body.removeChild(fileInput);
+                    }
+                };
+                reader.onerror = function() {
+                    showModalMsg('❌ Gagal membaca file');
+                    document.body.removeChild(fileInput);
+                };
+                reader.readAsText(file);
+            };
+            fileInput.click();
         };
         const sidebarLangSel = document.getElementById('sidebarLangSelect');
         if (sidebarLangSel) {
@@ -2355,10 +1704,3 @@
     applyLanguage(currentLang);
     updateRegisterSubmitEnabled();
     initInfinityAnimation();
-</script>
-<div style="text-align: center; margin-bottom: 20px; font-size: 0.65rem; color: rgba(255, 51, 102, 0.4); font-family: sans-serif;">
-        v2.13 | Zycresth x Fahmi-astronot
-    </div>
-
-</body>
-</html>
