@@ -23,14 +23,6 @@ Developed by **Zycresth** & **Fahmi-astronot**.
     * [Canvas-Confetti](https://github.com/catdad/canvas-confetti) (UX/Effects)
     * [jsPDF](https://github.com/parallax/jsPDF) & [html2canvas](https://html2canvas.hertzen.com/) (Reporting)
 
-## 📂 Installation & Usage
-1.  Clone this repository:
-    ```bash
-    git clone [https://github.com/YOUR_USERNAME/YOUR_REPO_NAME.git](https://github.com/YOUR_USERNAME/YOUR_REPO_NAME.git)
-    ```
-2.  Navigate to the directory and open `Project K V213 (Cursor).html` in any modern web browser.
-3.  Enjoy tracking your savings!
-
 ## 🤝 Contribution
 This project is a collaboration between **Zycresth** and **Fahmi-astronot**. Feel free to fork, open issues, or submit pull requests to help make *Infinity Saving* even better.
 
