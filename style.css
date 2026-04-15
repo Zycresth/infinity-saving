@@ -341,6 +341,11 @@
         .sidebar.open {
             left: 65px;
         }
+        /* Premium Android feel with cubic-bezier timing */
+        .sidebar-toggle,
+        .modal-overlay {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
         .menu-item {
             display: flex;
             align-items: center;
@@ -350,7 +355,7 @@
             border-radius: 24px;
             background: rgba(255,255,255,0.05);
             cursor: pointer;
-            transition: 0.2s;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
         }
         .menu-item:hover {
             background: rgba(255,51,102,0.2);
