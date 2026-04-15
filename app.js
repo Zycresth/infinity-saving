@@ -301,7 +301,11 @@
             importFailed: '❌ File tidak valid',
             confirmImport: '⚠️ Peringatan: Mengimpor data akan menggantikan semua data saat ini. Lanjutkan?',
             importBtn: '📥 Impor Data',
-            exportBtn: '📤 Ekspor Data'
+            exportBtn: '📤 Ekspor Data',
+            labelAdvanced: 'Lanjutan',
+            btnExportJson: 'Ekspor Data (JSON)',
+            btnExportTxt: 'Ekspor Laporan (Txt)',
+            btnImportData: 'Impor Data'
         },
         en: {
             appTitle: 'Infinity Saving - Save Your Dreams',
@@ -438,7 +442,11 @@
             importFailed: '❌ Invalid file',
             confirmImport: '⚠️ Warning: Importing data will replace all current data. Continue?',
             importBtn: '📥 Import Data',
-            exportBtn: '📤 Export Data'
+            exportBtn: '📤 Export Data',
+            labelAdvanced: 'Advanced',
+            btnExportJson: 'Export Data (JSON)',
+            btnExportTxt: 'Export Report (Txt)',
+            btnImportData: 'Import Data'
         },
         ms: {
             appTitle: 'Infinity Saving - Simpan Impian Anda',
@@ -575,7 +583,11 @@
             importFailed: '❌ Fail tidak sah',
             confirmImport: '⚠️ Amaran: Mengimport data akan menggantikan semua data semasa. Teruskan?',
             importBtn: '📥 Import Data',
-            exportBtn: '📤 Export Data'
+            exportBtn: '📤 Export Data',
+            labelAdvanced: 'Lanjutan',
+            btnExportJson: 'Eksport Data (JSON)',
+            btnExportTxt: 'Eksport Laporan (Txt)',
+            btnImportData: 'Import Data'
         }
     };
 
@@ -698,6 +710,17 @@
         if (sidebarDarkLbl) sidebarDarkLbl.textContent = t('sidebarDarkMode');
         const sidebarDarkToggle = document.getElementById('sidebarDarkModeToggle');
         if (sidebarDarkToggle) sidebarDarkToggle.checked = !!settings.darkMode;
+        
+        // Advanced Settings segment labels
+        const sidebarAdvancedLabel = document.getElementById('sidebarAdvancedLabel');
+        if (sidebarAdvancedLabel) sidebarAdvancedLabel.textContent = t('labelAdvanced');
+        const exportJsonAdvBtn = document.getElementById('exportJsonAdvBtn');
+        if (exportJsonAdvBtn) exportJsonAdvBtn.textContent = '📤 ' + t('btnExportJson');
+        const exportTxtBtn = document.getElementById('exportTxtBtn');
+        if (exportTxtBtn) exportTxtBtn.textContent = '📄 ' + t('btnExportTxt');
+        const importDataBtn = document.getElementById('importDataBtn');
+        if (importDataBtn) importDataBtn.textContent = '📥 ' + t('btnImportData');
+        
         const resetBtn = document.getElementById('resetAllDataBtn');
         if (resetBtn) resetBtn.textContent = t('resetAllDataBtn');
 
@@ -1760,13 +1783,63 @@
             }
         };
         document.getElementById('exportJsonBtn').onclick = () => {
-            const data = { targets, transactions, settings };
+            handleExportJson();
+        };
+
+        // Export TXT Report function for Google Keep copy-paste
+        function handleExportTxt() {
+            let report = 'INFINITY SAVING - LAPORAN TARGET\n';
+            report += '===================================\n\n';
+            
+            if (targets.length === 0) {
+                report += 'Belum ada target nabung.\n';
+            } else {
+                targets.forEach((target, index) => {
+                    const { remaining, etaDays, etaMonths, routineAmount } = calculateProgress(target);
+                    const percentage = target.targetNominal > 0 ? ((target.collected / target.targetNominal) * 100).toFixed(1) : 0;
+                    
+                    report += (index + 1) + '. ' + target.name + '\n';
+                    report += '   Target: ' + formatRupiah(target.targetNominal) + '\n';
+                    report += '   Terkumpul: ' + formatRupiah(target.collected) + ' (' + percentage + '%)\n';
+                    report += '   Sisa: ' + formatRupiah(remaining) + '\n';
+                    if (routineAmount > 0) {
+                        report += '   Setoran Rutin: ' + formatRupiah(routineAmount) + '\n';
+                    }
+                    if (etaDays !== null) {
+                        report += '   Estimasi: ' + etaDays + ' hari (' + etaMonths + ' bulan)\n';
+                    }
+                    if (target.description) {
+                        report += '   Deskripsi: ' + target.description + '\n';
+                    }
+                    report += '\n';
+                });
+            }
+            
+            report += '\n===================================\n';
+            report += 'Dibuat pada: ' + new Date().toLocaleString() + '\n';
+            
+            const blob = new Blob([report], { type: 'text/plain;charset=utf-8' });
             const a = document.createElement('a');
-            a.href = URL.createObjectURL(new Blob([JSON.stringify(data)], {type:'application/json'}));
-            a.download = 'nabung_backup.json';
+            a.href = URL.createObjectURL(blob);
+            a.download = 'laporan-infinity-saving.txt';
             a.click();
             showToast(t('exportSuccess'));
-        };
+        }
+
+        // Export JSON function
+        function handleExportJson() {
+            const data = { targets, transactions, settings };
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], {type:'application/json'}));
+            a.download = 'infinity-saving-data.json';
+            a.click();
+            showToast(t('exportSuccess'));
+        }
+
+        // Import Data function
+        function handleImportData() {
+            importFileInput.click();
+        }
 
         // Import functionality with validation and confirmation
         const importFileInput = document.createElement('input');
@@ -1838,6 +1911,18 @@
         document.getElementById('importJsonBtn').onclick = function() {
             importFileInput.click();
         };
+        
+        // Advanced Settings buttons event listeners
+        document.getElementById('exportJsonAdvBtn').onclick = function() {
+            handleExportJson();
+        };
+        document.getElementById('exportTxtBtn').onclick = function() {
+            handleExportTxt();
+        };
+        document.getElementById('importDataBtn').onclick = function() {
+            handleImportData();
+        };
+        
         const sidebarCurrencySel = document.getElementById('sidebarCurrencySelect');
         if (sidebarCurrencySel) {
             sidebarCurrencySel.value = settings.currency || 'IDR';
