@@ -8,6 +8,15 @@
     const APP_STATE_KEY = 'nabung_app_state';
     const MIN_PASS_LEN = 4;
 
+    // Network/Proxy configuration for future Privacy Hardening
+    const NETWORK_CONFIG = {
+        proxyEnabled: false,
+        proxyUrl: 'http://localhost:8080/proxy',
+        customHeaders: {
+            'X-Privacy-Mode': 'enabled'
+        }
+    };
+
     // Currency configuration
     const CURRENCY_CONFIG = {
         IDR: { symbol: 'Rp', locale: 'id-ID', decimal: 0 },
@@ -867,6 +876,21 @@
         else document.body.classList.add('light');
     }
 
+    // Proxy fetch skeleton for future Privacy Hardening
+    function fetchThroughProxy(url, options = {}) {
+        if (!NETWORK_CONFIG.proxyEnabled) {
+            return fetch(url, options);
+        }
+        const proxyOptions = {
+            ...options,
+            headers: {
+                ...(options.headers || {}),
+                ...NETWORK_CONFIG.customHeaders
+            }
+        };
+        return fetch(NETWORK_CONFIG.proxyUrl + '?url=' + encodeURIComponent(url), proxyOptions);
+    }
+
     function formatValue(num) {
         const curr = settings.currency || 'IDR';
         const config = CURRENCY_CONFIG[curr] || CURRENCY_CONFIG.IDR;
@@ -941,6 +965,110 @@
         }
         modal.classList.add('active');
         document.getElementById('closeModalBtn')?.addEventListener('click', ()=>modal.classList.remove('active'));
+    }
+
+    // ======================= SMART PREDICTION LOGIC =======================
+    function updatePredictionTab() {
+        if (targets.length === 0) {
+            showModalMsg(t('noTargetYet'));
+            return;
+        }
+
+        const frag = document.createDocumentFragment();
+        const container = document.createElement('div');
+        container.style.cssText = 'padding: 16px; max-height: 70vh; overflow-y: auto;';
+
+        const title = document.createElement('h3');
+        title.textContent = '📈 Prediksi Target Cerdas';
+        title.style.cssText = 'color: #e63946; margin-bottom: 16px; text-align: center;';
+        container.appendChild(title);
+
+        let hasValidPrediction = false;
+
+        targets.forEach(function(target) {
+            const remaining = target.targetNominal - target.collected;
+            if (remaining <= 0) return;
+
+            const routineAmount = target.routineAmount || 0;
+            let etaMonths = null;
+            let etaDays = null;
+            let statusSentiment = '';
+
+            if (routineAmount > 0) {
+                const daysNeeded = Math.ceil(remaining / routineAmount);
+                etaDays = daysNeeded;
+                etaMonths = (daysNeeded / 30).toFixed(1);
+
+                if (etaMonths < 3) {
+                    statusSentiment = 'On Track 🔥';
+                } else if (etaMonths < 6) {
+                    statusSentiment = 'Moderate ⚡';
+                } else {
+                    statusSentiment = 'Long Term 🎯';
+                }
+            } else {
+                statusSentiment = 'Need Action ⚠️';
+            }
+
+            hasValidPrediction = true;
+            const card = document.createElement('div');
+            card.className = 'glass-card';
+            card.style.cssText = 'margin-bottom: 12px; padding: 16px; border: 1px solid rgba(255, 51, 102, 0.3);';
+
+            const nameEl = document.createElement('div');
+            nameEl.style.cssText = 'font-weight: bold; color: #ff3366; margin-bottom: 8px; font-size: 1.1rem;';
+            nameEl.textContent = target.name;
+            card.appendChild(nameEl);
+
+            const remainingEl = document.createElement('div');
+            remainingEl.style.cssText = 'font-size: 0.9rem; color: var(--text-light); margin-bottom: 4px;';
+            remainingEl.textContent = 'Sisa: ' + formatRupiah(remaining);
+            card.appendChild(remainingEl);
+
+            const routineEl = document.createElement('div');
+            routineEl.style.cssText = 'font-size: 0.85rem; color: var(--text-dim); margin-bottom: 8px;';
+            routineEl.textContent = 'Setoran Rutin: ' + (routineAmount > 0 ? formatRupiah(routineAmount) : 'Tidak diatur');
+            card.appendChild(routineEl);
+
+            if (etaDays !== null) {
+                const etaEl = document.createElement('div');
+                etaEl.style.cssText = 'font-size: 0.9rem; color: var(--text-light); margin-bottom: 4px;';
+                etaEl.textContent = 'Estimasi: ' + etaDays + ' hari (' + etaMonths + ' bulan)';
+                card.appendChild(etaEl);
+            }
+
+            const statusEl = document.createElement('div');
+            statusEl.style.cssText = 'font-size: 0.9rem; font-weight: bold; color: ' + (statusSentiment.includes('⚠️') ? '#ffaa44' : '#ff3366') + ';';
+            statusEl.textContent = 'Status: ' + statusSentiment;
+            card.appendChild(statusEl);
+
+            frag.appendChild(card);
+        });
+
+        if (!hasValidPrediction) {
+            const noDataEl = document.createElement('div');
+            noDataEl.style.cssText = 'text-align: center; color: var(--text-dim); padding: 20px;';
+            noDataEl.textContent = 'Belum ada prediksi. Tambahkan setoran rutin ke target Anda.';
+            frag.appendChild(noDataEl);
+        }
+
+        container.appendChild(frag);
+
+        const modalContent = document.getElementById('modalContent');
+        modalContent.innerHTML = '';
+        modalContent.appendChild(container);
+
+        const closeBtn = document.createElement('button');
+        closeBtn.className = 'btn-outline';
+        closeBtn.type = 'button';
+        closeBtn.textContent = t('legalClose');
+        closeBtn.style.cssText = 'width: 100%; margin-top: 16px;';
+        closeBtn.addEventListener('click', () => {
+            document.getElementById('globalModal').classList.remove('active');
+        });
+        modalContent.appendChild(closeBtn);
+
+        document.getElementById('globalModal').classList.add('active');
     }
 
     // ======================= RENDER TARGET =======================
@@ -1543,7 +1671,10 @@
         aiBtn.parentNode.replaceChild(newAiBtn, aiBtn);
         newAiBtn.addEventListener('click', openAIChat);
         
-        document.getElementById('prediksiBtn').onclick = () => showModalMsg(t('predictionMessage'));
+        document.getElementById('prediksiBtn').onclick = () => updatePredictionTab();
+        // Chart instance tracking for memory leak prevention
+        let chartInstance = null;
+
         document.getElementById('showChartBtn').onclick = () => {
             if(targets.length===0) { showModalMsg(t('noTargetYet')); return; }
             let labels = targets.map(t=>t.name);
@@ -1553,7 +1684,13 @@
             showModalMsg(html, true);
             setTimeout(()=>{
                 const ctx = document.getElementById('simpleChart')?.getContext('2d');
-                if(ctx) new Chart(ctx, { type:'bar', data:{ labels, datasets:[{label:t('chartCollectedLabel'), data:collectedData, backgroundColor:'#ff3366'},{label:t('chartTargetLabel'), data:targetData, backgroundColor:'#aaa'}] } });
+                if(ctx) {
+                    // Destroy old chart instance to prevent memory leaks
+                    if (chartInstance) {
+                        chartInstance.destroy();
+                    }
+                    chartInstance = new Chart(ctx, { type:'bar', data:{ labels, datasets:[{label:t('chartCollectedLabel'), data:collectedData, backgroundColor:'#ff3366'},{label:t('chartTargetLabel'), data:targetData, backgroundColor:'#aaa'}] } });
+                }
             },50);
         };
         document.getElementById('historyBtn').onclick = () => {
