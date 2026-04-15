@@ -1769,11 +1769,31 @@
         if (sidebar.classList.contains('open')) closeSidebar();
         else openSidebar();
     }
+    // Set active navigation item for visual feedback
+    function setActiveNavItem(element) {
+        document.querySelectorAll('.menu-item').forEach(item => {
+            item.classList.remove('active-nav');
+        });
+        
+        if (element && element.classList.contains('menu-item')) {
+            element.classList.add('active-nav');
+        }
+    }
+
     function attachSidebarEvents() {
         const overlay = document.getElementById('sidebarOverlay');
         document.getElementById('closeSidebar').onclick = closeSidebar;
         if (overlay) overlay.onclick = closeSidebar;
         document.getElementById('fabAddTarget').onclick = openAddTargetModal;
+        
+        // Event delegation for menu items with active state
+        document.getElementById('sidebar').addEventListener('click', function(e) {
+            const menuItem = e.target.closest('.menu-item');
+            if (menuItem) {
+                setActiveNavItem(menuItem);
+            }
+        });
+        
         document.querySelectorAll('[data-dropdown-toggle]').forEach(function (btn) {
             btn.onclick = function () {
                 const targetId = btn.getAttribute('data-dropdown-toggle');
@@ -2274,7 +2294,18 @@
     document.getElementById('linkLegalPrivacy').onclick = function () { openLegalModal('privacy'); };
     document.getElementById('linkLegalHelp').onclick = function () { openLegalModal('help'); };
 
-    loadData();
-    applyLanguage(currentLang);
-    updateRegisterSubmitEnabled();
-    initInfinityAnimation();
+    // FAIL-SAFE INITIALIZATION: Wrap everything in try-catch-finally
+    // This ensures loading screen ALWAYS hides even if errors occur
+    window.addEventListener('DOMContentLoaded', function() {
+        try {
+            initInfinityAnimation();
+            loadData();
+            applyLanguage(currentLang);
+            updateRegisterSubmitEnabled();
+        } catch (err) {
+            console.error("Critical Init Error:", err);
+        } finally {
+            // Essential: Hide loader even if errors occur
+            setTimeout(hideLoading, 500);
+        }
+    });
