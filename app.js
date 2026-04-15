@@ -761,8 +761,6 @@
         if (menuDataHeader) menuDataHeader.textContent = t('menuDataHeader');
         const historyBtn = document.getElementById('historyBtn');
         if (historyBtn) historyBtn.textContent = t('menuHistory');
-        const exportBtn = document.getElementById('exportJsonBtn');
-        if (exportBtn) exportBtn.textContent = t('menuExport');
         const menuSettingHeader = document.getElementById('menuSettingHeader');
         if (menuSettingHeader) menuSettingHeader.textContent = t('menuSettingHeader');
         const logoutBtn = document.getElementById('logoutBtn');
@@ -1782,10 +1780,6 @@
                 showModalMsg(`${t('historyTitle')}\n${list}`);
             }
         };
-        document.getElementById('exportJsonBtn').onclick = () => {
-            handleExportJson();
-        };
-
         // Export TXT Report function for Google Keep copy-paste
         function handleExportTxt() {
             let report = 'INFINITY SAVING - LAPORAN TARGET\n';
@@ -1838,23 +1832,20 @@
 
         // Import Data function
         function handleImportData() {
-            importFileInput.click();
+            const fileInput = document.getElementById('importFileInput');
+            if (fileInput) fileInput.click();
         }
 
         // Import functionality with validation and confirmation
-        const importFileInput = document.createElement('input');
-        importFileInput.id = 'importFile';
-        importFileInput.type = 'file';
-        importFileInput.accept = '.json,application/json';
-        importFileInput.style.display = 'none';
-        document.body.appendChild(importFileInput);
+        const importFileInputEl = document.getElementById('importFileInput');
 
-        importFileInput.onchange = function(e) {
-            const file = e.target.files[0];
-            if (!file) return;
+        if (importFileInputEl) {
+            importFileInputEl.onchange = function(e) {
+                const file = e.target.files[0];
+                if (!file) return;
 
-            const reader = new FileReader();
-            reader.onload = function(event) {
+                const reader = new FileReader();
+                reader.onload = function(event) {
                 try {
                     const importedData = JSON.parse(event.target.result);
                     // Validate the structure
@@ -1898,19 +1889,16 @@
                 } catch (err) {
                     showModalMsg(t('importFailed') + ': ' + err.message);
                 } finally {
-                    importFileInput.value = '';
+                    importFileInputEl.value = '';
                 }
             };
             reader.onerror = function() {
                 showModalMsg('❌ Gagal membaca file');
-                importFileInput.value = '';
+                importFileInputEl.value = '';
             };
             reader.readAsText(file);
         };
 
-        document.getElementById('importJsonBtn').onclick = function() {
-            importFileInput.click();
-        };
         
         // Advanced Settings buttons event listeners
         document.getElementById('exportJsonAdvBtn').onclick = function() {
