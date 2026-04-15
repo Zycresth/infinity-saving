@@ -3,6 +3,12 @@
 __pycache__/
 *.o
 *.obj
+*.class
+*.exe
+*.dll
+*.so
+*.a
+*.out
 dist/
 build/
 target/
@@ -13,6 +19,9 @@ venv/
 node_modules/
 .mypy_cache/
 .pytest_cache/
+.coverage
+coverage/
+htmlcov/
 .gradle/
 
 # Logs and temp files
@@ -36,11 +45,6 @@ node_modules/
 .DS_Store
 Thumbs.db
 
-# Coverage
-coverage/
-htmlcov/
-.coverage
-
 # Compressed files
 *.zip
 *.gz
@@ -60,3 +64,7 @@ htmlcov/
 *.Z
 *.lz
 *.lzo
+*.tar.gz
+*.tar.bz2
+*.tar.xz
+*.tar.zst
