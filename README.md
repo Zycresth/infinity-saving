@@ -1,5 +1,5 @@
 # ✦ Infinity Saving - Save Your Dreams ✦
-> **v2.13.4** | A modern, secure, and AI-assisted financial tracking web application.
+> **v2.13.5** | A modern, secure, and AI-assisted financial tracking web application.
 
 Developed by **Zycresth** & **Fahmi-astronot**.
 
