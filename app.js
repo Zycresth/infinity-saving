@@ -1958,6 +1958,7 @@
             };
             reader.readAsText(file);
         };
+        }
 
         
         // Advanced Settings buttons event listeners
