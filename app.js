@@ -204,7 +204,8 @@
             menuChart: '📊 Grafik Target',
             menuDataHeader: '💰 Riwayat & Data',
             menuHistory: '📜 Histori Setoran',
-            menuExport: '💾 Export/Import JSON',
+            menuExport: '📤 Ekspor Data',
+            menuImport: '📥 Impor Data',
             menuSettingHeader: '⚙️ Pengaturan',
             menuSettings: '🛠️ Pengaturan & Tema',
             menuLogout: '🚪 Logout',
@@ -283,7 +284,24 @@
             legalPrivacyTitle: 'Kebijakan Privasi',
             legalPrivacyHtml: '<p><strong>Penyimpanan lokal saja.</strong> Semua data aplikasi disimpan <strong>hanya di localStorage browser</strong> pada perangkat yang Anda gunakan. Ini meliputi akun terdaftar, <strong>kata sandi yang sudah di-hash</strong> (bukan teks asli), target nabung, transaksi, pengaturan, dan data vault per pengguna.</p><p><strong>Tidak dikirim ke server kami.</strong> Data inti aplikasi <strong>tidak dikirim</strong> ke server pengembang atau pihak ketiga oleh aplikasi ini. Tidak ada sinkronisasi cloud bawaan.</p><p><strong>Fitur opsional pihak ketiga.</strong> Jika Anda memakai fitur seperti obrolan AI dan memasukkan kunci API atau teks Anda sendiri, permintaan tersebut dikirim ke penyedia yang Anda pilih sesuai kebijakan mereka—bukan sebagai bagian penyimpanan akun inti aplikasi.</p><p><strong>Kata sandi.</strong> Yang disimpan adalah hash bcrypt di perangkat Anda; kami tidak menerima atau menyimpan kata sandi teks-jelas di infrastruktur kami untuk fitur lokal ini.</p>',
             legalHelpTitle: 'Bantuan & FAQ',
-            legalHelpHtml: '<p><strong>Bagaimana data saya disimpan?</strong> Data disimpan otomatis di localStorage saat Anda membuat target, mencatat setoran, mendaftar, atau mengubah pengaturan. Tidak perlu tombol Simpan terpisah untuk sebagian besar aksi.</p><p><strong>Bagaimana enkripsi kata sandi bekerja?</strong> Saat mendaftar, kata sandi di-hash dengan bcrypt di browser Anda sebelum disimpan. Saat masuk, aplikasi membandingkan kata sandi yang Anda ketik dengan hash yang tersimpan. Teks kata sandi asli tidak disimpan di localStorage untuk akun baru.</p><p><strong>Apa jika saya membersihkan cache atau data situs?</strong> Membersihkan data browser, cache, atau penyimpanan untuk situs ini dapat <strong>menghapus seluruh data</strong> di perangkat ini, termasuk akun, target, dan riwayat. <strong>Gunakan menu Ekspor JSON</strong> secara berkala untuk cadangan. Tanpa cadangan, data mungkin tidak dapat dipulihkan.</p><p><strong>Akun lama?</strong> Jika Anda pernah mendaftar sebelum hashing, masuk sekali akan meng-upgrade penyimpanan ke hash jika masih memungkinkan.</p><p><strong>Kredit.</strong> Konsep asli oleh Fahmi-astronot, dikembangkan dan diperkuat oleh Zycresth.</p>'
+            legalHelpHtml: '<p><strong>Bagaimana data saya disimpan?</strong> Data disimpan otomatis di localStorage saat Anda membuat target, mencatat setoran, mendaftar, atau mengubah pengaturan. Tidak perlu tombol Simpan terpisah untuk sebagian besar aksi.</p><p><strong>Bagaimana enkripsi kata sandi bekerja?</strong> Saat mendaftar, kata sandi di-hash dengan bcrypt di browser Anda sebelum disimpan. Saat masuk, aplikasi membandingkan kata sandi yang Anda ketik dengan hash yang tersimpan. Teks kata sandi asli tidak disimpan di localStorage untuk akun baru.</p><p><strong>Apa jika saya membersihkan cache atau data situs?</strong> Membersihkan data browser, cache, atau penyimpanan untuk situs ini dapat <strong>menghapus seluruh data</strong> di perangkat ini, termasuk akun, target, dan riwayat. <strong>Gunakan menu Ekspor JSON</strong> secara berkala untuk cadangan. Tanpa cadangan, data mungkin tidak dapat dipulihkan.</p><p><strong>Akun lama?</strong> Jika Anda pernah mendaftar sebelum hashing, masuk sekali akan meng-upgrade penyimpanan ke hash jika masih memungkinkan.</p><p><strong>Kredit.</strong> Konsep asli oleh Fahmi-astronot, dikembangkan dan diperkuat oleh Zycresth.</p>',
+            predictionTitle: '📈 Prediksi Target Cerdas',
+            etaLabel: 'Estimasi',
+            statusLabel: 'Status',
+            progressLabel: 'Sisa',
+            routineLabel: 'Setoran Rutin',
+            periodsLabel: 'hari',
+            monthsUnit: 'bulan',
+            onTrack: 'On Track 🔥',
+            monitor: 'Monitor ⚡',
+            needAction: 'Need Action ⚠️',
+            noPredictionData: 'Belum ada prediksi. Tambahkan setoran rutin ke target Anda.',
+            notSet: 'Tidak diatur',
+            importSuccess: '✅ Import berhasil!',
+            importFailed: '❌ File tidak valid',
+            confirmImport: '⚠️ Peringatan: Mengimpor data akan menggantikan semua data saat ini. Lanjutkan?',
+            importBtn: '📥 Impor Data',
+            exportBtn: '📤 Ekspor Data'
         },
         en: {
             appTitle: 'Infinity Saving - Save Your Dreams',
@@ -326,7 +344,8 @@
             menuChart: '📊 Goal Chart',
             menuDataHeader: '💰 History & Data',
             menuHistory: '📜 Deposit History',
-            menuExport: '💾 Export/Import JSON',
+            menuExport: '📤 Export Data',
+            menuImport: '📥 Import Data',
             menuSettingHeader: '⚙️ Settings',
             menuLogout: '🚪 Logout',
             menuRandomChallenge: '🎲 Random Challenge',
@@ -402,7 +421,24 @@
             legalPrivacyTitle: 'Privacy Policy',
             legalPrivacyHtml: '<p><strong>Local storage only.</strong> All app data is stored <strong>only in your browser localStorage</strong> on this device. This includes registered accounts, <strong>hashed passwords</strong> (not plain text), savings targets, transactions, settings, and per-user vault data.</p><p><strong>Not sent to our servers.</strong> Core app data is <strong>not transmitted</strong> to the developer’s servers or third parties by this app. There is no built-in cloud sync.</p><p><strong>Optional third-party features.</strong> If you use features such as AI chat and enter an API key or your own messages, those requests are sent to the provider you choose under their policies—not as part of the app’s core local account storage.</p><p><strong>Passwords.</strong> What is stored is a bcrypt hash on your device; we do not receive or store plain-text passwords on our infrastructure for this local-first flow.</p>',
             legalHelpTitle: 'Help & FAQ',
-            legalHelpHtml: '<p><strong>How is my data saved?</strong> Data is saved automatically to localStorage when you create targets, log deposits, register, or change settings. Most actions do not need a separate Save button.</p><p><strong>How does password protection work?</strong> On sign-up, your password is hashed with bcrypt in your browser before storage. On sign-in, the app compares what you type to the stored hash. Plain passwords are not stored in localStorage for new accounts.</p><p><strong>What if I clear cache or site data?</strong> Clearing browser data, cache, or storage for this site can <strong>erase all data</strong> on this device, including accounts, targets, and history. <strong>Use Export JSON</strong> in the menu regularly for backups. Without a backup, data may be unrecoverable.</p><p><strong>Older accounts?</strong> If you registered before hashing was added, signing in once may upgrade storage to a hash when applicable.</p><p><strong>Credits.</strong> Original concept by Fahmi-astronot, developed and hardened by Zycresth.</p>'
+            legalHelpHtml: '<p><strong>How is my data saved?</strong> Data is saved automatically to localStorage when you create targets, log deposits, register, or change settings. Most actions do not need a separate Save button.</p><p><strong>How does password protection work?</strong> On sign-up, your password is hashed with bcrypt in your browser before storage. On sign-in, the app compares what you type to the stored hash. Plain passwords are not stored in localStorage for new accounts.</p><p><strong>What if I clear cache or site data?</strong> Clearing browser data, cache, or storage for this site can <strong>erase all data</strong> on this device, including accounts, targets, and history. <strong>Use Export JSON</strong> in the menu regularly for backups. Without a backup, data may be unrecoverable.</p><p><strong>Older accounts?</strong> If you registered before hashing was added, signing in once may upgrade storage to a hash when applicable.</p><p><strong>Credits.</strong> Original concept by Fahmi-astronot, developed and hardened by Zycresth.</p>',
+            predictionTitle: '📈 Smart Goal Prediction',
+            etaLabel: 'Estimate',
+            statusLabel: 'Status',
+            progressLabel: 'Remaining',
+            routineLabel: 'Routine Deposit',
+            periodsLabel: 'days',
+            monthsUnit: 'months',
+            onTrack: 'On Track 🔥',
+            monitor: 'Monitor ⚡',
+            needAction: 'Need Action ⚠️',
+            noPredictionData: 'No predictions yet. Add routine deposits to your goals.',
+            notSet: 'Not set',
+            importSuccess: '✅ Import successful!',
+            importFailed: '❌ Invalid file',
+            confirmImport: '⚠️ Warning: Importing data will replace all current data. Continue?',
+            importBtn: '📥 Import Data',
+            exportBtn: '📤 Export Data'
         },
         ms: {
             appTitle: 'Infinity Saving - Simpan Impian Anda',
@@ -445,7 +481,8 @@
             menuChart: '📊 Carta Sasaran',
             menuDataHeader: '💰 Sejarah & Data',
             menuHistory: '📜 Sejarah Deposit',
-            menuExport: '💾 Eksport/Import JSON',
+            menuExport: '📤 Export Data',
+            menuImport: '📥 Import Data',
             menuSettingHeader: '⚙️ Tetapan',
             menuLogout: '🚪 Log keluar',
             menuRandomChallenge: '🎲 Cabaran Rawak',
@@ -521,7 +558,24 @@
             legalPrivacyTitle: 'Dasar Privasi',
             legalPrivacyHtml: '<p><strong>Penyimpanan tempatan sahaja.</strong> Semua data aplikasi disimpan <strong>hanya dalam localStorage pelayar</strong> pada peranti ini. Ini termasuk akaun berdaftar, <strong>kata laluan yang di-hash</strong> (bukan teks jelas), sasaran simpanan, transaksi, tetapan, dan data vault mengikut pengguna.</p><p><strong>Tidak dihantar ke pelayan kami.</strong> Data teras aplikasi <strong>tidak dihantar</strong> ke pelayan pembangun atau pihak ketiga oleh aplikasi ini. Tiada penyegerakan awan terbina dalam.</p><p><strong>Ciri pihak ketiga pilihan.</strong> Jika anda menggunakan ciri seperti sembang AI dan memasukkan kunci API atau teks anda sendiri, permintaan tersebut dihantar ke penyedia yang anda pilih mengikut dasar mereka—bukan sebagai sebahagian penyimpanan akaun teras tempatan.</p><p><strong>Kata laluan.</strong> Yang disimpan ialah hash bcrypt pada peranti anda; kami tidak menerima atau menyimpan kata laluan teks jelas dalam infrastruktur kami untuk aliran tempatan ini.</p>',
             legalHelpTitle: 'Bantuan & Soalan Lazim',
-            legalHelpHtml: '<p><strong>Bagaimana data saya disimpan?</strong> Data disimpan secara automatik ke localStorage apabila anda mencipta sasaran, merekod deposit, mendaftar, atau menukar tetapan. Kebanyakan tindakan tidak memerlukan butang Simpan berasingan.</p><p><strong>Bagaimana perlindungan kata laluan berfungsi?</strong> Semasa pendaftaran, kata laluan di-hash dengan bcrypt dalam pelayar anda sebelum disimpan. Semasa log masuk, aplikasi membandingkan input anda dengan hash yang disimpan. Kata laluan teks jelas tidak disimpan dalam localStorage untuk akaun baharu.</p><p><strong>Apa jika saya mengosongkan cache atau data laman?</strong> Mengosongkan data pelayar, cache, atau storan untuk laman ini boleh <strong>memadam semua data</strong> pada peranti ini, termasuk akaun, sasaran, dan sejarah. <strong>Gunakan Eksport JSON</strong> dalam menu secara berkala untuk sandaran. Tanpa sandaran, data mungkin tidak dapat dipulihkan.</p><p><strong>Akaun lama?</strong> Jika anda mendaftar sebelum hashing ditambah, log masuk sekali mungkin menaik taraf storan kepada hash jika berkenaan.</p><p><strong>Kredit.</strong> Konsep asal oleh Fahmi-astronot, dibangunkan dan diperkukuh oleh Zycresth.</p>'
+            legalHelpHtml: '<p><strong>Bagaimana data saya disimpan?</strong> Data disimpan secara automatik ke localStorage apabila anda mencipta sasaran, merekod deposit, mendaftar, atau menukar tetapan. Kebanyakan tindakan tidak memerlukan butang Simpan berasingan.</p><p><strong>Bagaimana perlindungan kata laluan berfungsi?</strong> Semasa pendaftaran, kata laluan di-hash dengan bcrypt dalam pelayar anda sebelum disimpan. Semasa log masuk, aplikasi membandingkan input anda dengan hash yang disimpan. Kata laluan teks jelas tidak disimpan dalam localStorage untuk akaun baharu.</p><p><strong>Apa jika saya mengosongkan cache atau data laman?</strong> Mengosongkan data pelayar, cache, atau storan untuk laman ini boleh <strong>memadam semua data</strong> pada peranti ini, termasuk akaun, sasaran, dan sejarah. <strong>Gunakan Eksport JSON</strong> dalam menu secara berkala untuk sandaran. Tanpa sandaran, data mungkin tidak dapat dipulihkan.</p><p><strong>Akaun lama?</strong> Jika anda mendaftar sebelum hashing ditambah, log masuk sekali mungkin menaik taraf storan kepada hash jika berkenaan.</p><p><strong>Kredit.</strong> Konsep asal oleh Fahmi-astronot, dibangunkan dan diperkukuh oleh Zycresth.</p>',
+            predictionTitle: '📈 Ramalan Sasaran Pintar',
+            etaLabel: 'Anggaran',
+            statusLabel: 'Status',
+            progressLabel: 'Baki',
+            routineLabel: 'Deposit Rutin',
+            periodsLabel: 'hari',
+            monthsUnit: 'bulan',
+            onTrack: 'On Track 🔥',
+            monitor: 'Monitor ⚡',
+            needAction: 'Need Action ⚠️',
+            noPredictionData: 'Belum ada ramalan. Tambah deposit rutin pada sasaran anda.',
+            notSet: 'Tidak ditetapkan',
+            importSuccess: '✅ Import berjaya!',
+            importFailed: '❌ Fail tidak sah',
+            confirmImport: '⚠️ Amaran: Mengimport data akan menggantikan semua data semasa. Teruskan?',
+            importBtn: '📥 Import Data',
+            exportBtn: '📤 Export Data'
         }
     };
 
@@ -979,7 +1033,7 @@
         container.style.cssText = 'padding: 16px; max-height: 70vh; overflow-y: auto;';
 
         const title = document.createElement('h3');
-        title.textContent = '📈 Prediksi Target Cerdas';
+        title.textContent = t('predictionTitle');
         title.style.cssText = 'color: #e63946; margin-bottom: 16px; text-align: center;';
         container.appendChild(title);
 
@@ -993,6 +1047,7 @@
             let etaMonths = null;
             let etaDays = null;
             let statusSentiment = '';
+            let statusColor = '#ff3366';
 
             if (routineAmount > 0) {
                 const daysNeeded = Math.ceil(remaining / routineAmount);
@@ -1000,14 +1055,18 @@
                 etaMonths = (daysNeeded / 30).toFixed(1);
 
                 if (etaMonths < 3) {
-                    statusSentiment = 'On Track 🔥';
+                    statusSentiment = t('onTrack');
+                    statusColor = '#ff3366';
                 } else if (etaMonths < 6) {
-                    statusSentiment = 'Moderate ⚡';
+                    statusSentiment = t('monitor');
+                    statusColor = '#ffaa44';
                 } else {
-                    statusSentiment = 'Long Term 🎯';
+                    statusSentiment = t('needAction');
+                    statusColor = '#ffaa44';
                 }
             } else {
-                statusSentiment = 'Need Action ⚠️';
+                statusSentiment = t('needAction');
+                statusColor = '#ffaa44';
             }
 
             hasValidPrediction = true;
@@ -1022,24 +1081,24 @@
 
             const remainingEl = document.createElement('div');
             remainingEl.style.cssText = 'font-size: 0.9rem; color: var(--text-light); margin-bottom: 4px;';
-            remainingEl.textContent = 'Sisa: ' + formatRupiah(remaining);
+            remainingEl.textContent = t('progressLabel') + ': ' + formatRupiah(remaining);
             card.appendChild(remainingEl);
 
             const routineEl = document.createElement('div');
             routineEl.style.cssText = 'font-size: 0.85rem; color: var(--text-dim); margin-bottom: 8px;';
-            routineEl.textContent = 'Setoran Rutin: ' + (routineAmount > 0 ? formatRupiah(routineAmount) : 'Tidak diatur');
+            routineEl.textContent = t('routineLabel') + ': ' + (routineAmount > 0 ? formatRupiah(routineAmount) : t('notSet'));
             card.appendChild(routineEl);
 
             if (etaDays !== null) {
                 const etaEl = document.createElement('div');
                 etaEl.style.cssText = 'font-size: 0.9rem; color: var(--text-light); margin-bottom: 4px;';
-                etaEl.textContent = 'Estimasi: ' + etaDays + ' hari (' + etaMonths + ' bulan)';
+                etaEl.textContent = t('etaLabel') + ': ' + etaDays + ' ' + t('periodsLabel') + ' (' + etaMonths + ' ' + t('monthsUnit') + ')';
                 card.appendChild(etaEl);
             }
 
             const statusEl = document.createElement('div');
-            statusEl.style.cssText = 'font-size: 0.9rem; font-weight: bold; color: ' + (statusSentiment.includes('⚠️') ? '#ffaa44' : '#ff3366') + ';';
-            statusEl.textContent = 'Status: ' + statusSentiment;
+            statusEl.style.cssText = 'font-size: 0.9rem; font-weight: bold; color: ' + statusColor + ';';
+            statusEl.textContent = t('statusLabel') + ': ' + statusSentiment;
             card.appendChild(statusEl);
 
             frag.appendChild(card);
@@ -1048,7 +1107,7 @@
         if (!hasValidPrediction) {
             const noDataEl = document.createElement('div');
             noDataEl.style.cssText = 'text-align: center; color: var(--text-dim); padding: 20px;';
-            noDataEl.textContent = 'Belum ada prediksi. Tambahkan setoran rutin ke target Anda.';
+            noDataEl.textContent = t('noPredictionData');
             frag.appendChild(noDataEl);
         }
 
@@ -1707,65 +1766,77 @@
             a.download = 'nabung_backup.json';
             a.click();
             showToast(t('exportSuccess'));
-            // Add import functionality with validation
-            const fileInput = document.createElement('input');
-            fileInput.type = 'file';
-            fileInput.accept = '.json,application/json';
-            fileInput.style.display = 'none';
-            document.body.appendChild(fileInput);
-            fileInput.onchange = function(e) {
-                const file = e.target.files[0];
-                if (!file) return;
-                const reader = new FileReader();
-                reader.onload = function(event) {
-                    try {
-                        const importedData = JSON.parse(event.target.result);
-                        // Validate the structure
-                        if (!importedData || typeof importedData !== 'object') {
-                            throw new Error('Invalid file format');
-                        }
-                        if (!Array.isArray(importedData.targets)) {
-                            throw new Error('Missing targets array');
-                        }
-                        if (!Array.isArray(importedData.transactions)) {
-                            throw new Error('Missing transactions array');
-                        }
-                        // Validate each target
-                        for (let i = 0; i < importedData.targets.length; i++) {
-                            const t = importedData.targets[i];
-                            if (!t.name || typeof t.targetNominal !== 'number') {
-                                throw new Error(`Invalid target at index ${i}`);
-                            }
-                        }
-                        // Validate each transaction
-                        for (let i = 0; i < importedData.transactions.length; i++) {
-                            const tx = importedData.transactions[i];
-                            if (typeof tx.amount !== 'number' || !tx.date) {
-                                throw new Error(`Invalid transaction at index ${i}`);
-                            }
-                        }
-                        // If validation passes, import the data
-                        targets = importedData.targets;
-                        transactions = importedData.transactions;
-                        if (importedData.settings && typeof importedData.settings === 'object') {
-                            settings = { ...settings, ...importedData.settings };
-                        }
-                        syncVaultFromMemory();
-                        renderMainUI();
-                        showToast('✅ Import berhasil!');
-                    } catch (err) {
-                        showModalMsg('❌ File tidak valid: ' + err.message);
-                    } finally {
-                        document.body.removeChild(fileInput);
+        };
+
+        // Import functionality with validation and confirmation
+        const importFileInput = document.createElement('input');
+        importFileInput.id = 'importFile';
+        importFileInput.type = 'file';
+        importFileInput.accept = '.json,application/json';
+        importFileInput.style.display = 'none';
+        document.body.appendChild(importFileInput);
+
+        importFileInput.onchange = function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                try {
+                    const importedData = JSON.parse(event.target.result);
+                    // Validate the structure
+                    if (!importedData || typeof importedData !== 'object') {
+                        throw new Error('Invalid file format');
                     }
-                };
-                reader.onerror = function() {
-                    showModalMsg('❌ Gagal membaca file');
-                    document.body.removeChild(fileInput);
-                };
-                reader.readAsText(file);
+                    if (!Array.isArray(importedData.targets)) {
+                        throw new Error('Missing targets array');
+                    }
+                    if (!Array.isArray(importedData.transactions)) {
+                        throw new Error('Missing transactions array');
+                    }
+                    // Validate each target
+                    for (let i = 0; i < importedData.targets.length; i++) {
+                        const t = importedData.targets[i];
+                        if (!t.name || typeof t.targetNominal !== 'number') {
+                            throw new Error('Invalid target at index ' + i);
+                        }
+                    }
+                    // Validate each transaction
+                    for (let i = 0; i < importedData.transactions.length; i++) {
+                        const tx = importedData.transactions[i];
+                        if (typeof tx.amount !== 'number' || !tx.date) {
+                            throw new Error('Invalid transaction at index ' + i);
+                        }
+                    }
+                    // Show confirmation before overwriting
+                    if (confirm(t('confirmImport'))) {
+                        requestAnimationFrame(function() {
+                            targets = importedData.targets;
+                            transactions = importedData.transactions;
+                            if (importedData.settings && typeof importedData.settings === 'object') {
+                                settings = { ...settings, ...importedData.settings };
+                            }
+                            syncVaultFromMemory();
+                            renderMainUI();
+                            updatePredictionTab();
+                            showToast(t('importSuccess'));
+                        });
+                    }
+                } catch (err) {
+                    showModalMsg(t('importFailed') + ': ' + err.message);
+                } finally {
+                    importFileInput.value = '';
+                }
             };
-            fileInput.click();
+            reader.onerror = function() {
+                showModalMsg('❌ Gagal membaca file');
+                importFileInput.value = '';
+            };
+            reader.readAsText(file);
+        };
+
+        document.getElementById('importJsonBtn').onclick = function() {
+            importFileInput.click();
         };
         const sidebarCurrencySel = document.getElementById('sidebarCurrencySelect');
         if (sidebarCurrencySel) {
