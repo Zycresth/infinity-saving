@@ -356,6 +356,18 @@
             background: rgba(255,51,102,0.2);
             transform: translateX(4px);
         }
+        .menu-item:active, 
+        .btn:active,
+        .submenu-item:active {
+            transform: scale(0.95);
+        }
+        .active-nav {
+            background: rgba(255, 51, 102, 0.15);
+            border-left: 4px solid #ff3366;
+            color: #ff3366;
+            font-weight: 600;
+            box-shadow: 0 4px 12px rgba(255, 51, 102, 0.1);
+        }
         .menu-category-header {
             font-size: 0.7rem;
             font-weight: bold;
@@ -656,5 +668,59 @@
         .chat-ai {
             background-color: #2a2a3a;
             color: #f0f0f0;
+        }
+        
+        /* Toast Notification */
+        .toast-notification {
+            position: fixed;
+            bottom: 90px;
+            left: 50%;
+            transform: translateX(-50%) translateY(100px);
+            background: rgba(20, 20, 20, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 12px 24px;
+            border-radius: 50px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: #fff;
+            font-size: 0.9rem;
+            font-weight: 500;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+            z-index: 9999;
+            opacity: 0;
+            pointer-events: none;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            max-width: 90%;
+            text-align: center;
+        }
+        
+        .toast-notification.show {
+            transform: translateX(-50%) translateY(0);
+            opacity: 1;
+        }
+        
+        /* Empty State Enhancement */
+        #emptyStateMsg {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            padding: 30px;
+            border-radius: 16px;
+            text-align: center;
+            color: var(--text-dim);
+            animation: pulse-glow 3s infinite ease-in-out;
+        }
+        
+        @keyframes pulse-glow {
+            0%, 100% { 
+                box-shadow: 0 0 0 rgba(255, 51, 102, 0); 
+                border-color: rgba(255, 255, 255, 0.05); 
+            }
+            50% { 
+                box-shadow: 0 0 20px rgba(255, 51, 102, 0.1); 
+                border-color: rgba(255, 51, 102, 0.2); 
+            }
         }
 

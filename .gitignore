@@ -4,7 +4,6 @@
 __pycache__/
 *.o
 *.obj
-*.class
 *.exe
 *.dll
 *.so
@@ -19,26 +18,6 @@ venv/
 .env.local
 .env.*
 
-# Build directories
-dist/
-build/
-target/
-.gradle/
-
-# Python specific
-*.pyc
-__pycache__/
-.pytest_cache/
-.mypy_cache/
-.coverage
-coverage/
-htmlcov/
-
-# JavaScript/Node
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-
 # Logs and temp files
 *.log
 *.tmp
@@ -48,12 +27,15 @@ yarn-error.log*
 # Editors
 .vscode/
 .idea/
-*.swp
-*.swo
 
-# System
+# System files
 .DS_Store
 Thumbs.db
+
+# Coverage
+coverage/
+htmlcov/
+.coverage
 
 # Compressed files
 *.zip

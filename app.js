@@ -3,6 +3,11 @@
     let transactions = [];
     let currentUser = null;
     let settings = { darkMode: true, currency: 'IDR' };
+    
+    // Performance optimization variables
+    let saveTimeout = null;
+    const DEBOUNCE_DELAY = 500;
+    let animationFrameId = null;
 
     const ACCOUNTS_KEY = 'nabung_accounts';
     const APP_STATE_KEY = 'nabung_app_state';
@@ -944,6 +949,27 @@
     function saveTransactions() {
         syncVaultFromMemory();
     }
+    
+    // Debounced save function for performance optimization
+    function saveData() {
+        if (saveTimeout) {
+            clearTimeout(saveTimeout);
+        }
+        
+        saveTimeout = setTimeout(() => {
+            try {
+                const dataToSave = {
+                    targets: targets,
+                    transactions: transactions,
+                    settings: settings
+                };
+                localStorage.setItem('nabung_app_state', JSON.stringify(dataToSave));
+            } catch (e) {
+                console.error("Save failed:", e);
+            }
+        }, DEBOUNCE_DELAY);
+    }
+    
     function saveUser() { if(currentUser) localStorage.setItem('nabung_user', JSON.stringify(currentUser)); else localStorage.removeItem('nabung_user'); }
     function saveSettings() { localStorage.setItem('nabung_settings', JSON.stringify(settings)); applyTheme(); }
     function applyTheme() {
@@ -1006,13 +1032,27 @@
     }
 
     function showToast(msg) {
-        let toast = document.createElement('div');
-        toast.innerText = msg;
-        toast.style.position = 'fixed'; toast.style.bottom = '90px'; toast.style.left = '20px'; toast.style.right='20px';
-        toast.style.background='#e63946'; toast.style.padding='12px'; toast.style.borderRadius='40px'; toast.style.textAlign='center';
-        toast.style.zIndex='999'; toast.style.backdropFilter='blur(8px)';
+        // Remove existing toast
+        const existingToast = document.querySelector('.toast-notification');
+        if (existingToast) existingToast.remove();
+        
+        const toast = document.createElement('div');
+        toast.className = 'toast-notification';
+        toast.innerHTML = '<span>✓</span><span>' + msg + '</span>';
+        
         document.body.appendChild(toast);
-        setTimeout(()=>toast.remove(), 2500);
+        
+        // Trigger reflow and show
+        void toast.offsetWidth;
+        requestAnimationFrame(() => {
+            toast.classList.add('show');
+        });
+        
+        // Auto-hide after 2 seconds
+        setTimeout(() => {
+            toast.classList.remove('show');
+            setTimeout(() => toast.remove(), 400);
+        }, 2000);
     }
 
     function showModalMsg(content, isHtml=false) {
@@ -2061,27 +2101,24 @@
         }
         requestAnimationFrame(draw);
 
+        // Store animation frame ID for cleanup
+        const animationLoop = { id: null };
+        function drawWithTracking(ts) {
+            if (!canvas) return;
+            draw(ts);
+        }
+        animationFrameId = requestAnimationFrame(function track(ts) {
+            if (!canvas) return;
+            draw(ts);
+            animationFrameId = requestAnimationFrame(track);
+        });
+
         // FAIL-SAFE LOADING: Ensure loading screen always hides even if errors occur
         setTimeout(() => {
             try {
-                const loadingScreen = document.getElementById('loading-screen');
-                if (loadingScreen) {
-                    loadingScreen.style.opacity = '0';
-                    setTimeout(() => {
-                        loadingScreen.style.display = 'none';
-                        if(currentUser) {
-                            document.getElementById('auth-container').style.display = 'none';
-                            document.getElementById('main-app').style.display = 'block';
-                            renderMainUI();
-                            attachSidebarEvents();
-                        } else {
-                            document.getElementById('auth-container').style.display = 'flex';
-                            typeEffect();
-                        }
-                    }, 500);
-                }
+                hideLoading();
             } catch (err) {
-                console.error('Error during loading screen transition:', err);
+                console.error('Error during hideLoading:', err);
                 // Force hide in case of error
                 const loadingScreen = document.getElementById('loading-screen');
                 if (loadingScreen) {
@@ -2089,6 +2126,39 @@
                 }
             }
         }, 2200);
+    }
+    
+    // Updated hideLoading with canvas cleanup
+    function hideLoading() {
+        const loadingScreen = document.getElementById('loading-screen');
+        if (loadingScreen) {
+            loadingScreen.style.opacity = '0';
+            setTimeout(() => {
+                loadingScreen.style.display = 'none';
+                if(currentUser) {
+                    document.getElementById('auth-container').style.display = 'none';
+                    document.getElementById('main-app').style.display = 'block';
+                    renderMainUI();
+                    attachSidebarEvents();
+                } else {
+                    document.getElementById('auth-container').style.display = 'flex';
+                    typeEffect();
+                }
+            }, 500);
+        }
+        
+        // Stop infinity canvas animation to free resources
+        if (animationFrameId) {
+            cancelAnimationFrame(animationFrameId);
+            animationFrameId = null;
+        }
+        
+        // Clear canvas context
+        const canvas = document.getElementById('infinityCanvas');
+        if (canvas) {
+            const ctx = canvas.getContext('2d');
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+        }
     }
 
     // ======================= EVENT LISTENER LOGIN =======================
