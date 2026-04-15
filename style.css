@@ -356,6 +356,16 @@
             background: rgba(255,51,102,0.2);
             transform: translateX(4px);
         }
+        .menu-category-header {
+            font-size: 0.7rem;
+            font-weight: bold;
+            color: var(--text-dim);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            padding: 8px 12px;
+            margin: 12px 0 6px 0;
+            border-bottom: 1px solid rgba(255, 51, 102, 0.2);
+        }
         .menu-dropdown {
             margin-bottom: 10px;
         }

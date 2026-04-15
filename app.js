@@ -711,13 +711,13 @@
         const sidebarDarkToggle = document.getElementById('sidebarDarkModeToggle');
         if (sidebarDarkToggle) sidebarDarkToggle.checked = !!settings.darkMode;
         
-        // Advanced Settings segment labels
+        // Advanced segment labels in main sidebar
         const sidebarAdvancedLabel = document.getElementById('sidebarAdvancedLabel');
         if (sidebarAdvancedLabel) sidebarAdvancedLabel.textContent = t('labelAdvanced');
         const exportJsonAdvBtn = document.getElementById('exportJsonAdvBtn');
-        if (exportJsonAdvBtn) exportJsonAdvBtn.textContent = '📤 ' + t('btnExportJson');
+        if (exportJsonAdvBtn) exportJsonAdvBtn.textContent = '💾 ' + t('btnExportJson');
         const exportTxtBtn = document.getElementById('exportTxtBtn');
-        if (exportTxtBtn) exportTxtBtn.textContent = '📄 ' + t('btnExportTxt');
+        if (exportTxtBtn) exportTxtBtn.textContent = '📝 ' + t('btnExportTxt');
         const importDataBtn = document.getElementById('importDataBtn');
         if (importDataBtn) importDataBtn.textContent = '📥 ' + t('btnImportData');
         
@@ -2061,20 +2061,33 @@
         }
         requestAnimationFrame(draw);
 
+        // FAIL-SAFE LOADING: Ensure loading screen always hides even if errors occur
         setTimeout(() => {
-            document.getElementById('loading-screen').style.opacity = '0';
-            setTimeout(() => {
-                document.getElementById('loading-screen').style.display = 'none';
-                if(currentUser) {
-                    document.getElementById('auth-container').style.display = 'none';
-                    document.getElementById('main-app').style.display = 'block';
-                    renderMainUI();
-                    attachSidebarEvents();
-                } else {
-                    document.getElementById('auth-container').style.display = 'flex';
-                    typeEffect();
+            try {
+                const loadingScreen = document.getElementById('loading-screen');
+                if (loadingScreen) {
+                    loadingScreen.style.opacity = '0';
+                    setTimeout(() => {
+                        loadingScreen.style.display = 'none';
+                        if(currentUser) {
+                            document.getElementById('auth-container').style.display = 'none';
+                            document.getElementById('main-app').style.display = 'block';
+                            renderMainUI();
+                            attachSidebarEvents();
+                        } else {
+                            document.getElementById('auth-container').style.display = 'flex';
+                            typeEffect();
+                        }
+                    }, 500);
                 }
-            }, 500);
+            } catch (err) {
+                console.error('Error during loading screen transition:', err);
+                // Force hide in case of error
+                const loadingScreen = document.getElementById('loading-screen');
+                if (loadingScreen) {
+                    loadingScreen.style.display = 'none';
+                }
+            }
         }, 2200);
     }
 
