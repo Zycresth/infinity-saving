@@ -1014,8 +1014,7 @@
             if (target.schedule) {
                 const scheduleInfo = document.createElement('div');
                 scheduleInfo.className = 'schedule-badge';
-                const currSymbol = CURRENCY_CONFIG[settings.currency]?.symbol || 'Rp';
-                scheduleInfo.textContent = `📅 ${getScheduleLabel(target.schedule)} ${target.routineAmount ? currSymbol + ' ' + formatRupiah(target.routineAmount) : ''}`;
+                scheduleInfo.textContent = `📅 ${getScheduleLabel(target.schedule)} ${target.routineAmount ? formatRupiah(target.routineAmount) : ''}`;
                 card.appendChild(scheduleInfo);
             }
 
@@ -1027,9 +1026,8 @@
             progressBar.appendChild(progressFill);
             card.appendChild(progressBar);
 
-            const currSym = CURRENCY_CONFIG[settings.currency]?.symbol || 'Rp';
             const amountLine = document.createElement('div');
-            amountLine.textContent = `${currSym} ${formatRupiah(target.collected)} / ${currSym} ${formatRupiah(target.targetNominal)} (${percent.toFixed(1)}%)`;
+            amountLine.textContent = `${formatRupiah(target.collected)} / ${formatRupiah(target.targetNominal)} (${percent.toFixed(1)}%)`;
             card.appendChild(amountLine);
 
             if (remainingDays !== null) {
@@ -1107,14 +1105,13 @@
         if(!target) return;
         const modal = document.getElementById('globalModal');
         const modalContent = document.getElementById('modalContent');
-        const currSym = CURRENCY_CONFIG[settings.currency]?.symbol || 'Rp';
         modalContent.innerHTML = '';
         const title = document.createElement('h3');
         title.textContent = tWithParams('modalSetorTitle', { name: target.name });
         const amountInput = document.createElement('input');
         amountInput.type = 'number';
         amountInput.id = 'setorAmount';
-        amountInput.placeholder = `${currSym} ${t('setorAmountPlaceholder')}`;
+        amountInput.placeholder = t('setorAmountPlaceholder');
         const noteInput = document.createElement('input');
         noteInput.type = 'text';
         noteInput.id = 'setorNote';
@@ -1187,7 +1184,6 @@
     function openAddTargetModal() {
         const modal = document.getElementById('globalModal');
         const modalContent = document.getElementById('modalContent');
-        const currSym = CURRENCY_CONFIG[settings.currency]?.symbol || 'Rp';
         modalContent.innerHTML = `
             <h3>${escapeHtml(t('addTargetTitle'))}</h3>
             <input id="targetName" placeholder="${escapeHtml(t('targetNamePlaceholder'))}" style="display:block;width:100%;margin-bottom:10px;" />
@@ -1196,7 +1192,7 @@
             <label class="image-upload-label" for="targetImage">${escapeHtml('Upload Gambar (opsional)')}</label>
             <input id="targetImage" type="file" accept="image/*" style="display:block;width:100%;margin-bottom:10px;" />
             <div id="imagePreviewContainer" class="image-preview-container" style="display:none;"></div>
-            <input id="targetAmount" type="number" placeholder="${currSym} ${escapeHtml(t('targetAmountPlaceholder'))}" style="display:block;width:100%;margin-bottom:10px;" />
+            <input id="targetAmount" type="number" placeholder="${escapeHtml(t('targetAmountPlaceholder'))}" style="display:block;width:100%;margin-bottom:10px;" />
             <select id="targetSchedule" style="display:block;width:100%;margin-bottom:10px;">
                 <option value="daily">${escapeHtml(t('scheduleDaily'))}</option>
                 <option value="monday">${escapeHtml(t('scheduleMonday'))}</option><option value="tuesday">${escapeHtml(t('scheduleTuesday'))}</option>
@@ -1207,7 +1203,7 @@
                 <option value="weekend">${escapeHtml(t('scheduleWeekend'))}</option>
                 <option value="flexible">${escapeHtml(t('scheduleFlexible'))}</option>
             </select>
-            <input id="routineAmount" type="number" placeholder="${currSym} ${escapeHtml(t('routineAmountPlaceholder'))}" style="display:block;width:100%;margin-bottom:10px;" />
+            <input id="routineAmount" type="number" placeholder="${escapeHtml(t('routineAmountPlaceholder'))}" style="display:block;width:100%;margin-bottom:10px;" />
             <input id="targetDeadline" type="date" placeholder="${escapeHtml(t('deadlinePlaceholder'))}" style="display:block;width:100%;margin-bottom:10px;" />
             <button class="btn-primary" id="createTargetBtn">${escapeHtml(t('createTargetBtn'))}</button>
             <button class="btn-outline" id="cancelModalBtn">${escapeHtml(t('cancelBtn'))}</button>
@@ -1265,7 +1261,6 @@
         
         const modal = document.getElementById('globalModal');
         const modalContent = document.getElementById('modalContent');
-        const currSym = CURRENCY_CONFIG[settings.currency]?.symbol || 'Rp';
         modalContent.innerHTML = `
             <h3>✏️ Edit Target: ${escapeHtml(target.name)}</h3>
             <input id="editTargetName" value="${escapeHtml(target.name)}" style="display:block;width:100%;margin-bottom:10px;" />
@@ -1274,7 +1269,7 @@
             <label class="image-upload-label" for="editTargetImage">Ganti Gambar (opsional)</label>
             <input id="editTargetImage" type="file" accept="image/*" style="display:block;width:100%;margin-bottom:10px;" />
             <div id="editImagePreviewContainer" class="image-preview-container"></div>
-            <input id="editTargetAmount" type="number" value="${target.targetNominal}" placeholder="${currSym} ${escapeHtml(t('targetAmountPlaceholder'))}" style="display:block;width:100%;margin-bottom:10px;" />
+            <input id="editTargetAmount" type="number" value="${target.targetNominal}" placeholder="${escapeHtml(t('targetAmountPlaceholder'))}" style="display:block;width:100%;margin-bottom:10px;" />
             <select id="editTargetSchedule" style="display:block;width:100%;margin-bottom:10px;">
                 <option value="daily"${target.schedule === 'daily' ? ' selected' : ''}>${escapeHtml(t('scheduleDaily'))}</option>
                 <option value="monday"${target.schedule === 'monday' ? ' selected' : ''}>${escapeHtml(t('scheduleMonday'))}</option>
@@ -1288,7 +1283,7 @@
                 <option value="weekend"${target.schedule === 'weekend' ? ' selected' : ''}>${escapeHtml(t('scheduleWeekend'))}</option>
                 <option value="flexible"${target.schedule === 'flexible' ? ' selected' : ''}>${escapeHtml(t('scheduleFlexible'))}</option>
             </select>
-            <input id="editRoutineAmount" type="number" value="${target.routineAmount || ''}" placeholder="${currSym} ${escapeHtml(t('routineAmountPlaceholder'))}" style="display:block;width:100%;margin-bottom:10px;" />
+            <input id="editRoutineAmount" type="number" value="${target.routineAmount || ''}" placeholder="${escapeHtml(t('routineAmountPlaceholder'))}" style="display:block;width:100%;margin-bottom:10px;" />
             <input id="editTargetDeadline" type="date" value="${target.deadline || ''}" style="display:block;width:100%;margin-bottom:10px;" />
             <button class="btn-primary" id="saveEditTargetBtn">💾 Simpan Perubahan</button>
             <button class="btn-outline" id="cancelEditModalBtn">${escapeHtml(t('cancelBtn'))}</button>
@@ -1564,8 +1559,7 @@
         document.getElementById('historyBtn').onclick = () => {
             if(transactions.length===0) showModalMsg(t('noHistoryYet'));
             else {
-                const currSym = CURRENCY_CONFIG[settings.currency]?.symbol || 'Rp';
-                let list = transactions.map(tx=>`${new Date(tx.date).toLocaleDateString()} - ${currSym}${formatRupiah(tx.amount)} : ${tx.note||'-'}`).join('\n');
+                let list = transactions.map(tx=>`${new Date(tx.date).toLocaleDateString()} - ${formatRupiah(tx.amount)} : ${tx.note||'-'}`).join('\n');
                 showModalMsg(`${t('historyTitle')}\n${list}`);
             }
         };
@@ -1669,7 +1663,7 @@
             };
         }
         document.getElementById('logoutBtn').onclick = () => { logout(); };
-        document.getElementById('randomChallenge').onclick = () => { const rand = Math.floor(Math.random()*50000)+5000; const currSym = CURRENCY_CONFIG[settings.currency]?.symbol || 'Rp'; showModalMsg(tWithParams('randomChallengeMsg', { amount: currSym + ' ' + formatRupiah(rand) })); };
+        document.getElementById('randomChallenge').onclick = () => { const rand = Math.floor(Math.random()*50000)+5000; showModalMsg(tWithParams('randomChallengeMsg', { amount: formatRupiah(rand) })); };
         document.getElementById('motivationQuote').onclick = () => {
             const quotes = Array.isArray(t('motivationQuotes')) ? t('motivationQuotes') : [];
             const msg = quotes.length ? quotes[Math.floor(Math.random()*quotes.length)] : '';
