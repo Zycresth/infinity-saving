@@ -1,7 +1,4 @@
 # ✦ Infinity Saving - Save Your Dreams ✦
-<<<<<<< HEAD
-> **v2.13.5alpha** | A modern, secure, and AI-assisted financial tracking web application.
-=======
 > **v2.13.7** | A modern, secure, and AI-assisted financial tracking web application.
 b1c7701 (Big Update)
 
