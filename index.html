@@ -3,11 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://generativelanguage.googleapis.com https://api.groq.com https://api-inference.huggingface.co; img-src 'self' data: https:;">
     <title>Infinity Saving - Save Your Dreams</title>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1"></script>
     <script src="https://cdn.jsdelivr.net/npm/bcryptjs@2.4.3/dist/bcrypt.min.js"></script>
     <link rel="stylesheet" href="style.css">
 </head>
@@ -16,9 +13,13 @@
 <div id="loading-screen">
     <div class="loading-content glass-card">
         <div class="infinity-container">
-            <canvas id="infinityCanvas"></canvas>
+            <svg viewBox="0 0 100 100" fill="none" aria-hidden="true" id="lemniscateSvg">
+                <g id="lemniscateGroup">
+                    <path id="lemniscatePath" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" opacity="0.1"></path>
+                </g>
+            </svg>
         </div>
-        <div class="cosmic-dust" id="loadingTagline">✦ Mengaktifkan Nebula Tabungan ✦</div>
+        <div class="cosmic-dust" id="loadingTagline">✦ Activating Nebula Savings ✦</div>
     </div>
 </div>
 
@@ -62,6 +63,13 @@
                 <option value="ms">Bahasa Melayu</option>
             </select>
         </div>
+        <div class="lang-row">
+            <label for="loginThemeSelect" id="loginThemeLabel">Mode</label>
+            <select id="loginThemeSelect" class="theme-select" style="width: 100%; padding: 8px; border-radius: 14px; border: 1px solid #ff3366;">
+                <option value="dark">🌙 Dark Mode</option>
+                <option value="light">☀️ Light Mode</option>
+            </select>
+        </div>
         <div class="legal-footer">
             <div class="legal-footer-links">
                 <button type="button" class="legal-link" id="linkLegalTos">Terms</button>
@@ -70,7 +78,7 @@
                 <span class="legal-sep" aria-hidden="true">·</span>
                 <button type="button" class="legal-link" id="linkLegalHelp">Help</button>
             </div>
-            <div class="v-tag">v2.13.0 | Zycresth x Fahmi-astronot</div>
+            <div class="v-tag">v2.13.5 | Zycresth x Fahmi-astronot</div>
         </div>
         <div id="authBusyOverlay" class="auth-busy-overlay" role="status" aria-live="polite" aria-hidden="true">
             <div class="auth-busy-inner">
@@ -82,80 +90,82 @@
 </div>
 
 <div id="main-app">
-    <div id="sideRail"></div>
+    <div id="sideRail">
+        <div id="hamburgerMenu">☰</div>
+        <div id="sideRailSettings" style="position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%);">
+            <button type="button" id="sideRailSettingsBtn" style="width: 45px; height: 45px; border-radius: 50%; background: rgba(255, 51, 102, 0.2); border: 1px solid rgba(255, 51, 102, 0.4); color: white; font-size: 20px; cursor: pointer; display: flex; align-items: center; justify-content: center;">⚙️</button>
+        </div>
+        <div id="sideRailSettingsMenu" class="side-rail-settings-menu" style="display: none;">
+            <label class="submenu-field-label" for="sideRailCurrencySelect" id="sideRailCurrencyLabel"></label>
+            <select id="sideRailCurrencySelect" class="currency-select" style="width: 100%; padding: 8px; border-radius: 14px; border: 1px solid #ff3366;">
+                <option value="IDR">IDR (Rp)</option>
+                <option value="USD">USD ($)</option>
+                <option value="EUR">EUR (€)</option>
+                <option value="JPY">JPY (¥)</option>
+            </select>
+            <label class="submenu-field-label" for="sideRailLangSelect" id="sideRailLangLabel"></label>
+            <select id="sideRailLangSelect" class="lang-select" style="width: 100%; padding: 8px; border-radius: 14px; border: 1px solid #ff3366; margin-top: 8px;">
+                <option value="id">Bahasa Indonesia</option>
+                <option value="en">English</option>
+                <option value="ms">Bahasa Melayu</option>
+            </select>
+            <div class="submenu-toggle-row" style="margin-top: 8px;">
+                <span id="sideRailDarkModeLabel"></span>
+                <select id="sideRailDarkModeToggle" class="theme-select" style="width: auto; padding: 4px 8px; border-radius: 8px; border: 1px solid #ff3366;">
+                    <option value="dark">🌙 Dark Mode</option>
+                    <option value="light">☀️ Light Mode</option>
+                </select>
+            </div>
+            <div class="submenu-toggle-row" style="margin-top: 8px;">
+                <span id="layoutModeLabel"></span>
+                <select id="layoutModeToggle" class="theme-select" style="width: auto; padding: 4px 8px; border-radius: 8px; border: 1px solid #ff3366;">
+                    <option value="grid">📐 Grid Mode</option>
+                    <option value="freeform">🎨 Freeform Mode</option>
+                </select>
+            </div>
+            <div style="border-top: 1px solid rgba(255, 51, 102, 0.3); margin: 16px 0 8px 0;"></div>
+            <div class="menu-category-header" id="sideRailAdvancedLabel"></div>
+            <button type="button" class="submenu-item" id="sideRailExportJsonBtn" style="margin-top: 4px;"></button>
+            <button type="button" class="submenu-item" id="sideRailExportTxtBtn"></button>
+            <button type="button" class="submenu-item" id="sideRailImportDataBtn"></button>
+            <div style="border-top: 1px solid rgba(255, 51, 102, 0.3); margin: 16px 0 8px 0;"></div>
+            <button type="button" class="submenu-item" id="sideRailResetAllDataBtn" style="color: #ff4444;"></button>
+        </div>
+    </div>
     <div id="sidebarOverlay" aria-hidden="true"></div>
     <div class="sidebar" id="sidebar">
         <div class="menu-header" style="display: flex; justify-content: space-between; margin-bottom: 20px;">
             <span style="font-weight: bold; color:var(--red-primary)">✦ INFINITY SAVING ✦</span>
-            <button id="closeSidebar" style="color:white; font-size:24px; background:none; border:none;">&times;</button>
+            <button id="closeSidebar" style="font-size:24px; background:none; border:none;">&times;</button>
         </div>
         <div class="menu-dropdown open" id="aiMenuGroup">
             <button type="button" class="menu-parent" data-dropdown-toggle="aiSubmenu">
-                <span id="menuAiHeader">🧠 AI & Asisten</span><span class="menu-chevron">⌄</span>
+                <span id="menuAiHeader"></span><span class="menu-chevron">⌄</span>
             </button>
             <div class="menu-submenu" id="aiSubmenu">
-                <button type="button" class="submenu-item" id="aiChatBtn">💬 Chat AI (Gemini/Grok/HF)</button>
-                <button type="button" class="submenu-item" id="prediksiBtn">📈 Prediksi Target</button>
+                <button type="button" class="submenu-item" id="aiChatBtn"></button>
             </div>
         </div>
-        <div class="menu-section">
-            <div class="menu-item" id="showChartBtn">📊 Grafik Target</div>
-        </div>
-        <div class="menu-dropdown" id="dataMenuGroup">
-            <button type="button" class="menu-parent" data-dropdown-toggle="dataSubmenu">
-                <span id="menuDataHeader">💰 Riwayat & Data</span><span class="menu-chevron">⌄</span>
+        <div class="menu-dropdown" id="goalsMenuGroup">
+            <button type="button" class="menu-parent" data-dropdown-toggle="goalsSubmenu">
+                <span id="menuGoalsHeader">🎯 Goals</span><span class="menu-chevron">⌄</span>
             </button>
-            <div class="menu-submenu" id="dataSubmenu">
-                <button type="button" class="submenu-item" id="historyBtn">📜 Histori Setoran</button>
+            <div class="menu-submenu" id="goalsSubmenu">
+                <button type="button" class="submenu-item" id="showChartBtn"></button>
+                <button type="button" class="submenu-item" id="prediksiBtn"></button>
+                <button type="button" class="submenu-item" id="historyBtn"></button>
             </div>
-        </div>
-        <div class="menu-dropdown" id="settingsMenuGroup">
-            <button type="button" class="menu-parent" data-dropdown-toggle="settingsSubmenu">
-                <span id="menuSettingHeader">⚙️ App Settings</span><span class="menu-chevron">⌄</span>
-            </button>
-            <div class="menu-submenu" id="settingsSubmenu">
-                <label class="submenu-field-label" for="sidebarCurrencySelect" id="sidebarCurrencyLabel">Mata Uang</label>
-                <select id="sidebarCurrencySelect" class="currency-select">
-                    <option value="IDR">IDR (Rp)</option>
-                    <option value="USD">USD ($)</option>
-                    <option value="EUR">EUR (€)</option>
-                    <option value="JPY">JPY (¥)</option>
-                </select>
-                <label class="submenu-field-label" for="sidebarLangSelect" id="sidebarLangLabel">Bahasa</label>
-                <select id="sidebarLangSelect" class="lang-select">
-                    <option value="id">Bahasa Indonesia</option>
-                    <option value="en">English</option>
-                    <option value="ms">Bahasa Melayu</option>
-                </select>
-                <div class="submenu-toggle-row">
-                    <span id="sidebarDarkModeLabel">Mode Gelap</span>
-                    <input type="checkbox" id="sidebarDarkModeToggle" style="width:auto; margin:0; transform:scale(1.1);">
-                </div>
-                
-                <div style="border-top: 1px solid rgba(255, 51, 102, 0.3); margin: 16px 0 8px 0;"></div>
-                <button type="button" class="submenu-item" id="resetAllDataBtn" data-i18n="btnResetData" style="margin-top:12px; color: #ff4444;">Hapus Semua Data</button>
-            </div>
-        </div>
-        
-        <!-- Advanced Section in Main Sidebar -->
-        <div class="menu-section">
-            <div class="menu-category-header" id="sidebarAdvancedLabel" data-i18n="labelAdvanced">ADVANCED</div>
-            <div class="menu-item" id="exportJsonAdvBtn" data-i18n="btnExportJson">💾 Export JSON</div>
-            <div class="menu-item" id="exportTxtBtn" data-i18n="btnExportTxt">📝 Export Report (Txt)</div>
-            <div class="menu-item" id="importDataBtn" data-i18n="btnImportData">📥 Import Data</div>
         </div>
         
         <!-- Hidden file input for import -->
         <input type="file" id="importFileInput" accept=".json" style="display: none;">
         
         <div class="menu-section">
-            <div class="menu-item" id="logoutBtn">🚪 Logout</div>
-            <div class="menu-item" id="randomChallenge">🎲 Tantangan Acak</div>
-            <div class="menu-item" id="motivationQuote">💬 Quote Hari Ini</div>
+            <div class="menu-item" id="logoutBtn"></div>
         </div>
     </div>
     <div class="fab-plus" id="fabAddTarget">+</div>
-    <div id="emptyStateMsg" style="padding: 20px; text-align: center; color: gray;">✨ Belum ada target nabung. Klik tombol + untuk memulai ✨</div>
+    <div id="emptyStateMsg" style="padding: 20px; text-align: center; color: gray;"></div>
     <div class="targets-grid" id="targetsGrid"></div>
 </div>
 

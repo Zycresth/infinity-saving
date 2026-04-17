@@ -47,14 +47,16 @@
         }
         .infinity-container {
             position: relative;
-            width: min(100%, 560px);
-            aspect-ratio: 4 / 1.6;
-            height: auto;
+            width: 200px;
+            height: 200px;
+            margin: 0 auto;
+            display: grid;
+            place-items: center;
         }
-        canvas#infinityCanvas {
-            display: block;
+        .infinity-container svg {
             width: 100%;
             height: 100%;
+            overflow: visible;
         }
         .cosmic-dust {
             text-align: center;
@@ -551,18 +553,91 @@
             margin-top: 12px;
             flex-wrap: wrap;
         }
-        .edit-btn {
-            background: rgba(255, 51, 102, 0.2);
-            border: 1px solid rgba(255, 51, 102, 0.4);
-            color: white;
-            padding: 8px 14px;
-            border-radius: 20px;
+        .card-actions button {
+            background: rgba(255,51,102,0.15);
+            color: #ff3366;
+            border: 1px solid rgba(255,51,102,0.25);
+            border-radius: 8px;
+            padding: 4px 8px;
+            font-size: 0.75rem;
             cursor: pointer;
-            font-size: 0.85rem;
-            transition: 0.2s;
+            transition: all 0.2s;
         }
-        .edit-btn:hover {
-            background: rgba(255, 51, 102, 0.35);
+        .card-actions button:hover {
+            background: rgba(255,51,102,0.25);
+        }
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+        .close-card-btn {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 20px;
+            cursor: pointer;
+            padding: 0 4px;
+            line-height: 1;
+            opacity: 0.7;
+            transition: opacity 0.2s;
+        }
+        .close-card-btn:hover {
+            opacity: 1;
+        }
+        .pin-btn {
+            background: none;
+            border: none;
+            font-size: 16px;
+            cursor: pointer;
+            padding: 2px 4px;
+            opacity: 0.7;
+            transition: opacity 0.2s;
+        }
+        .pin-btn:hover {
+            opacity: 1;
+        }
+        .drag-handle {
+            cursor: grab;
+            font-size: 16px;
+            color: rgba(255,255,255,0.5);
+            user-select: none;
+            padding: 2px 4px;
+        }
+        .drag-handle:active {
+            cursor: grabbing;
+        }
+        .target-card.dragging {
+            opacity: 0.8;
+            transform: scale(1.02);
+            z-index: 1000;
+        }
+        #targetsGrid.grid-mode.dragging {
+            background-image: linear-gradient(rgba(255,51,102,0.1) 1px, transparent 1px),
+                              linear-gradient(90deg, rgba(255,51,102,0.1) 1px, transparent 1px);
+            background-size: 20px 20px;
+        }
+        body.light #targetsGrid.grid-mode.dragging {
+            background-image: linear-gradient(rgba(100,100,100,0.15) 1px, transparent 1px),
+                              linear-gradient(90deg, rgba(100,100,100,0.15) 1px, transparent 1px);
+        }
+        #targetsGrid.freeform-mode {
+            position: relative;
+            min-height: 600px;
+        }
+        #targetsGrid.freeform-mode .target-card {
+            position: absolute;
+            margin: 0;
+        }
+        body.light .close-card-btn {
+            color: #1a1a2e;
+        }
+        body.light .pin-btn {
+            color: #1a1a2e;
+        }
+        body.light .drag-handle {
+            color: rgba(26, 26, 46, 0.5);
         }
         .image-upload-label {
             display: block;
@@ -630,16 +705,223 @@
             align-items: center;
             justify-content: center;
         }
+        .side-rail-settings-menu {
+            position: absolute;
+            bottom: 70px;
+            left: 65px;
+            width: 280px;
+            background: rgba(15, 15, 25, 0.95);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 51, 102, 0.3);
+            border-radius: 16px;
+            padding: 16px;
+            z-index: 340;
+            opacity: 0;
+            transform: translateY(10px);
+            transition: opacity 0.3s cubic-bezier(0.2, 0.9, 0.4, 1.1), transform 0.3s cubic-bezier(0.2, 0.9, 0.4, 1.1);
+        }
+        .side-rail-settings-menu.open {
+            opacity: 1;
+            transform: translateY(0);
+        }
         body.light {
             --bg-dark: #f5f0eb;
             --bg-card: rgba(245, 240, 235, 0.8);
+            --glow-red: #e63946;
+            --red-primary: #e63946;
+            --red-hover: #ff5c7a;
             --text-light: #1a1a2e;
-            --text-dim: #444;
-            background: #f0e6e0;
+            --text-dim: #555;
+            background: linear-gradient(135deg, #f5f0eb 0%, #e8e0d5 100%);
         }
         body.light .glass-card, body.light .target-card {
-            background: rgba(255,255,245,0.9);
-            color: #111;
+            background: rgba(255, 255, 250, 0.95);
+            color: #1a1a2e;
+            border: 1px solid rgba(230, 57, 70, 0.2);
+        }
+        body.light #sideRail {
+            background: rgba(230, 230, 235, 0.95);
+            border-right: 1px solid rgba(230, 57, 70, 0.2);
+        }
+        body.light .sidebar {
+            background: rgba(245, 245, 250, 0.98);
+            border-right: 1px solid rgba(230, 57, 70, 0.2);
+        }
+        body.light #sidebarOverlay {
+            background: rgba(0, 0, 0, 0.4);
+        }
+        body.light .menu-item {
+            color: #1a1a2e;
+        }
+        body.light .menu-item:hover {
+            background: rgba(230, 57, 70, 0.1);
+            color: #e63946;
+        }
+        body.light .menu-parent {
+            color: #1a1a2e;
+        }
+        body.light .menu-parent:hover {
+            background: rgba(230, 57, 70, 0.1);
+        }
+        body.light .submenu-item {
+            color: #333;
+            background: rgba(240, 235, 230, 0.5);
+        }
+        body.light .submenu-item:hover {
+            background: rgba(230, 57, 70, 0.15);
+            color: #e63946;
+        }
+        body.light .menu-submenu {
+            background: rgba(240, 235, 230, 0.6);
+            border-left: 1px solid rgba(230, 57, 70, 0.25);
+        }
+        body.light .menu-category-header {
+            color: #e63946;
+            border-bottom: 1px solid rgba(230, 57, 70, 0.2);
+        }
+        body.light .side-rail-settings-menu {
+            background: rgba(255, 255, 250, 0.98);
+            border: 1px solid rgba(230, 57, 70, 0.3);
+        }
+        body.light .submenu-field-label {
+            color: #555;
+        }
+        body.light select, body.light input[type="text"], body.light input[type="number"], body.light input[type="password"], body.light input[type="date"], body.light input[type="file"], body.light textarea {
+            background: rgba(255, 255, 255, 0.9) !important;
+            color: #1a1a2e !important;
+            border: 1px solid rgba(230, 57, 70, 0.3);
+        }
+        body.light select:focus, body.light input:focus, body.light textarea:focus {
+            border-color: #e63946;
+            box-shadow: 0 0 0 2px rgba(230, 57, 70, 0.1);
+        }
+        body.light #targetName, body.light #targetDesc, body.light #targetAmount, body.light #targetSchedule, body.light #routineAmount, body.light #targetDeadline,
+        body.light #editTargetName, body.light #editTargetDesc, body.light #editTargetAmount, body.light #editTargetSchedule, body.light #editRoutineAmount, body.light #editTargetDeadline {
+            background: rgba(255, 255, 255, 0.95) !important;
+            color: #1a1a2e !important;
+        }
+        body.light #aiModelSelect {
+            background: rgba(255, 255, 255, 0.95);
+            color: #1a1a2e;
+        }
+        body.light #closeAIChat {
+            color: #1a1a2e;
+        }
+        body.light #closeAIChat:hover {
+            color: #e63946;
+        }
+        #closeAIChat {
+            color: white;
+        }
+        #closeAIChat:hover {
+            color: #ff5c7a;
+        }
+        #aiModelSelect {
+            background: #1e1e2a;
+            color: white;
+        }
+        body.light .modal-overlay {
+            background: rgba(0, 0, 0, 0.5);
+        }
+        body.light .modal-content {
+            background: rgba(255, 255, 250, 0.98);
+            color: #1a1a2e;
+            border: 1px solid rgba(230, 57, 70, 0.3);
+        }
+        body.light .fab-plus {
+            background: #e63946;
+            color: white;
+            box-shadow: 0 4px 15px rgba(230, 57, 70, 0.4);
+        }
+        body.light .fab-plus:hover {
+            background: #ff5c7a;
+        }
+        body.light .card-actions button {
+            background: rgba(230, 57, 70, 0.1);
+            color: #e63946;
+            border: 1px solid rgba(230, 57, 70, 0.3);
+        }
+        body.light .card-actions button:hover {
+            background: rgba(230, 57, 70, 0.2);
+        }
+        body.light .schedule-badge {
+            background: rgba(230, 57, 70, 0.15);
+            color: #e63946;
+        }
+        body.light .chat-messages {
+            background: rgba(240, 235, 230, 0.5);
+        }
+        body.light .chat-user {
+            background-color: #e63946;
+            color: white;
+        }
+        body.light .chat-ai {
+            background-color: rgba(240, 235, 230, 0.8);
+            color: #1a1a2e;
+        }
+        body.light .chat-input-container {
+            background: rgba(240, 235, 230, 0.5);
+            border: 1px solid rgba(230, 57, 70, 0.3);
+        }
+        body.light .chat-input-container input {
+            background: rgba(255, 255, 255, 0.9);
+            color: #1a1a2e;
+        }
+        body.light .chat-send-btn {
+            background: #e63946;
+            color: white;
+        }
+        body.light .chat-send-btn:hover {
+            background: #ff5c7a;
+        }
+        body.light #hamburgerMenu {
+            color: #1a1a2e;
+        }
+        body.light #hamburgerMenu:hover {
+            color: #e63946;
+        }
+        body.light #closeSidebar {
+            color: #1a1a2e;
+        }
+        body.light #closeSidebar:hover {
+            color: #e63946;
+        }
+        #closeSidebar {
+            color: white;
+        }
+        #closeSidebar:hover {
+            color: #ff5c7a;
+        }
+        body.light .submenu-toggle-row span {
+            color: #333;
+        }
+        body.light .theme-select, body.light .lang-select, body.light .currency-select {
+            background: rgba(255, 255, 255, 0.95) !important;
+            color: #1a1a2e;
+        }
+        .theme-select, .lang-select, .currency-select {
+            background: #1e1e2a;
+            color: white;
+        }
+        body.light .menu-chevron {
+            color: #555;
+        }
+        body.light .loading-content {
+            background: rgba(245, 240, 235, 0.9);
+            border: 1px solid rgba(230, 57, 70, 0.3);
+        }
+        body.light #loading-screen {
+            background: radial-gradient(circle at center, #f5f0eb, #e8e0d5);
+        }
+        body.light #auth-container {
+            background: radial-gradient(ellipse at 30% 40%, #f0e6e0, #e8e0d5);
+            background-size: 200% 200%;
+            animation: cosmicDrift 20s infinite alternate;
+        }
+        body.light #loginEmail, body.light #loginPass, body.light #regUsername, body.light #regEmail, body.light #regPass, body.light #regPassConfirm {
+            background: rgba(255, 255, 255, 0.9);
+            color: #1a1a2e;
+            border: 1px solid rgba(230, 57, 70, 0.3);
         }
         .schedule-badge {
             font-size: 0.75rem;
@@ -704,6 +986,11 @@
         .toast-notification.show {
             transform: translateX(-50%) translateY(0);
             opacity: 1;
+        }
+        body.light .toast-notification {
+            background: rgba(255, 255, 250, 0.95);
+            color: #1a1a2e;
+            border: 1px solid rgba(230, 57, 70, 0.2);
         }
         
         /* Empty State Enhancement */

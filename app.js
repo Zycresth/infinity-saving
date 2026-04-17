@@ -1,17 +1,23 @@
     // ======================= DATA GLOBAL =======================
-    let targets = [];
-    let transactions = [];
-    let currentUser = null;
-    let settings = { darkMode: true, currency: 'IDR' };
-    
-    // Performance optimization variables
-    let saveTimeout = null;
-    const DEBOUNCE_DELAY = 500;
-    let animationFrameId = null;
+let targets = [];
+let transactions = [];
+let currentUser = null;
+let settings = {
+    theme: 'dark',
+    currency: 'IDR',
+    layoutMode: 'grid' // 'grid' for snap-to-grid, 'freeform' for custom positioning
+};
+// Performance optimization variables
+let saveTimeout = null;
+const DEBOUNCE_DELAY = 500;
+let animationFrameId = null;
+let langChangeTimeout = null;
+let currencyChangeTimeout = null;
+let pendingSaveData = null;
 
     const ACCOUNTS_KEY = 'nabung_accounts';
     const APP_STATE_KEY = 'nabung_app_state';
-    const MIN_PASS_LEN = 4;
+    const MIN_PASS_LEN = 8;
 
     // Network/Proxy configuration for future Privacy Hardening
     const NETWORK_CONFIG = {
@@ -112,7 +118,55 @@
         if (!e.includes('@')) return false;
         const parts = e.split('@');
         if (parts.length !== 2) return false;
-        return parts[0].length > 0 && parts[1].length > 0;
+        if (parts[0].length === 0 || parts[1].length === 0) return false;
+        // Basic domain validation
+        const domain = parts[1];
+        if (!domain.includes('.')) return false;
+        const domainParts = domain.split('.');
+        if (domainParts.length < 2) return false;
+        if (domainParts[domainParts.length - 1].length < 2) return false;
+        return true;
+    }
+    
+    function validatePasswordStrength(password) {
+        if (password.length < MIN_PASS_LEN) return false;
+        // Check for at least one letter and one digit
+        const hasLetter = /[a-zA-Z]/.test(password);
+        const hasDigit = /[0-9]/.test(password);
+        return hasLetter && hasDigit;
+    }
+    
+    function validateNumericInput(value, min = 0, max = Number.MAX_SAFE_INTEGER) {
+        const num = parseFloat(value);
+        if (isNaN(num)) return null;
+        if (num < min || num > max) return null;
+        return num;
+    }
+    
+    // Simple XOR obfuscation for API keys (not true encryption, but better than plain text)
+    function obfuscateApiKey(key) {
+        if (!key) return '';
+        const xorKey = 'infinity-saving-key';
+        let result = '';
+        for (let i = 0; i < key.length; i++) {
+            result += String.fromCharCode(key.charCodeAt(i) ^ xorKey.charCodeAt(i % xorKey.length));
+        }
+        return btoa(result); // Base64 encode
+    }
+    
+    function deobfuscateApiKey(obfuscated) {
+        if (!obfuscated) return '';
+        try {
+            const xorKey = 'infinity-saving-key';
+            const decoded = atob(obfuscated);
+            let result = '';
+            for (let i = 0; i < decoded.length; i++) {
+                result += String.fromCharCode(decoded.charCodeAt(i) ^ xorKey.charCodeAt(i % xorKey.length));
+            }
+            return result;
+        } catch (e) {
+            return '';
+        }
     }
     function userStorageKey(user) {
         if (!user) return null;
@@ -204,25 +258,22 @@
             errCrypto: 'Pustaka enkripsi gagal dimuat. Muat ulang halaman.',
             menuAiHeader: '🧠 AI & Asisten',
             menuAiChat: '💬 Chat AI (Gemini/Grok/HF)',
-            menuPrediction: '📈 Prediksi Target',
-            menuVizHeader: '📊 Visualisasi',
+            menuGoalsHeader: '🎯 Target',
             menuChart: '📊 Grafik Target',
-            menuDataHeader: '💰 Riwayat & Data',
+            menuPrediction: '📈 Prediksi Target',
             menuHistory: '📜 Histori Setoran',
             menuExport: '📤 Ekspor Data',
             menuImport: '📥 Impor Data',
             menuSettingHeader: '⚙️ Pengaturan',
             menuSettings: '🛠️ Pengaturan & Tema',
             menuLogout: '🚪 Logout',
-            menuGameHeader: '🎲 Gamifikasi',
-            menuRandomChallenge: '🎲 Tantangan Acak',
-            menuMotivationHeader: '✨ Motivasi',
-            menuMotivationQuote: '💬 Quote Hari Ini',
             emptyStateMsg: '✨ Belum ada target nabung. Klik tombol + untuk memulai ✨',
             btnDeposit: '💰 Setor',
             btnComplete: '✅ Selesai',
             statusDone: '✔️ Tercapai',
             sidebarDarkMode: 'Mode Gelap',
+            loginThemeLabel: 'Mode',
+            layoutModeLabel: 'Tata Letak',
             resetAllDataBtn: 'Hapus Semua Data',
             modalSetorTitle: '💰 Setor ke "{name}"',
             setorAmountPlaceholder: 'Nominal (Rp)',
@@ -234,6 +285,7 @@
             targetReachedToast: '🎉 Selamat! Target tercapai!',
             addTargetTitle: '✨ Target Nabung Baru',
             targetNamePlaceholder: 'Nama Nabung (contoh: Liburan)',
+            optional: 'opsional',
             targetDescLabel: 'Deskripsi (opsional)',
             targetDescPlaceholder: 'Tulis deskripsimu di sini...',
             targetAmountPlaceholder: 'Target Nominal (Rp)',
@@ -247,8 +299,6 @@
             noHistoryYet: 'Belum ada riwayat setoran.',
             historyTitle: '📜 Riwayat:',
             exportSuccess: 'Ekspor berhasil',
-            randomChallengeMsg: '🎲 Tantangan: Nabung Rp{amount} hari ini!',
-            motivationQuotes: ['Sedikit demi sedikit jadi bukit.', 'Konsistensi adalah kunci.', 'Hemat pangkal kaya'],
             aiTitle: '🤖 Asisten AI - Infinity Saving',
             aiModelLabel: 'Pilih Model AI:',
             aiApiKeyLabel: '🔑 API Key:',
@@ -349,21 +399,21 @@
             errCrypto: 'Encryption library failed to load. Please refresh the page.',
             menuAiHeader: '🧠 AI & Assistant',
             menuAiChat: '💬 AI Chat (Gemini/Grok/HF)',
+            menuGoalsHeader: '🎯 Goals',
             menuPrediction: '📈 Goal Prediction',
             menuChart: '📊 Goal Chart',
-            menuDataHeader: '💰 History & Data',
             menuHistory: '📜 Deposit History',
             menuExport: '📤 Export Data',
             menuImport: '📥 Import Data',
             menuSettingHeader: '⚙️ Settings',
             menuLogout: '🚪 Logout',
-            menuRandomChallenge: '🎲 Random Challenge',
-            menuMotivationQuote: '💬 Daily Quote',
             emptyStateMsg: '✨ No savings goals yet. Click + to start ✨',
             btnDeposit: '💰 Deposit',
             btnComplete: '✅ Complete',
             statusDone: '✔️ Achieved',
             sidebarDarkMode: 'Dark Mode',
+            loginThemeLabel: 'Mode',
+            layoutModeLabel: 'Layout',
             resetAllDataBtn: 'Delete All Data',
             modalSetorTitle: '💰 Deposit to "{name}"',
             setorAmountPlaceholder: 'Amount (Rp)',
@@ -375,6 +425,7 @@
             targetReachedToast: '🎉 Congrats! Target achieved!',
             addTargetTitle: '✨ New Savings Goal',
             targetNamePlaceholder: 'Goal name (e.g. Vacation)',
+            optional: 'optional',
             targetDescLabel: 'Description (optional)',
             targetDescPlaceholder: 'Write your description...',
             targetAmountPlaceholder: 'Target Amount (Rp)',
@@ -388,8 +439,6 @@
             noHistoryYet: 'No deposit history yet.',
             historyTitle: '📜 History:',
             exportSuccess: 'Export successful',
-            randomChallengeMsg: '🎲 Challenge: Save Rp{amount} today!',
-            motivationQuotes: ['Small steps build mountains.', 'Consistency is the key.', 'Frugality builds wealth.'],
             aiTitle: '🤖 AI Assistant - Infinity Saving',
             aiModelLabel: 'Select AI Model:',
             aiApiKeyLabel: '🔑 API Key:',
@@ -490,21 +539,21 @@
             errCrypto: 'Pustaka penyulitan gagal dimuat. Segar semula halaman.',
             menuAiHeader: '🧠 AI & Pembantu',
             menuAiChat: '💬 Sembang AI (Gemini/Grok/HF)',
+            menuGoalsHeader: '🎯 Sasaran',
             menuPrediction: '📈 Ramalan Sasaran',
             menuChart: '📊 Carta Sasaran',
-            menuDataHeader: '💰 Sejarah & Data',
             menuHistory: '📜 Sejarah Deposit',
             menuExport: '📤 Export Data',
             menuImport: '📥 Import Data',
             menuSettingHeader: '⚙️ Tetapan',
             menuLogout: '🚪 Log keluar',
-            menuRandomChallenge: '🎲 Cabaran Rawak',
-            menuMotivationQuote: '💬 Petikan Harian',
             emptyStateMsg: '✨ Belum ada sasaran simpanan. Klik + untuk mula ✨',
             btnDeposit: '💰 Deposit',
             btnComplete: '✅ Selesai',
             statusDone: '✔️ Tercapai',
             sidebarDarkMode: 'Mod Gelap',
+            loginThemeLabel: 'Mod',
+            layoutModeLabel: 'Susun Atur',
             resetAllDataBtn: 'Padam Semua Data',
             modalSetorTitle: '💰 Deposit ke "{name}"',
             setorAmountPlaceholder: 'Jumlah (Rp)',
@@ -516,6 +565,7 @@
             targetReachedToast: '🎉 Tahniah! Sasaran tercapai!',
             addTargetTitle: '✨ Sasaran Simpanan Baru',
             targetNamePlaceholder: 'Nama sasaran (cth: Percutian)',
+            optional: 'pilihan',
             targetDescLabel: 'Penerangan (pilihan)',
             targetDescPlaceholder: 'Tulis penerangan anda...',
             targetAmountPlaceholder: 'Jumlah Sasaran (Rp)',
@@ -529,8 +579,6 @@
             noHistoryYet: 'Belum ada sejarah deposit.',
             historyTitle: '📜 Sejarah:',
             exportSuccess: 'Eksport berjaya',
-            randomChallengeMsg: '🎲 Cabaran: Simpan Rp{amount} hari ini!',
-            motivationQuotes: ['Sedikit demi sedikit jadi bukit.', 'Konsisten ialah kunci.', 'Berjimat membawa kekayaan.'],
             aiTitle: '🤖 Pembantu AI - Infinity Saving',
             aiModelLabel: 'Pilih Model AI:',
             aiApiKeyLabel: '🔑 API Key:',
@@ -596,8 +644,8 @@
         }
     };
 
-    let currentLang = localStorage.getItem('nabung_lang') || 'id';
-    if (!I18N[currentLang]) currentLang = 'id';
+    let currentLang = localStorage.getItem('nabung_lang') || 'en';
+    if (!I18N[currentLang]) currentLang = 'en';
     let phrases = I18N[currentLang].typingPhrases.slice();
     let idx = 0, charIdx = 0, isDeleting = false;
     let typingTimer = null;
@@ -702,9 +750,13 @@
         if (guestBtn) guestBtn.textContent = t('guest');
 
         const langLbl = document.getElementById('langLabel');
-        if (langLbl) langLbl.textContent = t('langLabel');
+        if(langLbl) langLbl.textContent = t('langLabel');
         const langSel = document.getElementById('langSelect');
-        if (langSel) langSel.value = currentLang;
+        if(langSel) langSel.value = currentLang;
+        const loginThemeLabel = document.getElementById('loginThemeLabel');
+        if(loginThemeLabel) loginThemeLabel.textContent = t('loginThemeLabel');
+        const loginThemeSelect = document.getElementById('loginThemeSelect');
+        if(loginThemeSelect) loginThemeSelect.value = settings.theme || 'dark';
         const sidebarLangSel = document.getElementById('sidebarLangSelect');
         if (sidebarLangSel) sidebarLangSel.value = currentLang;
         const sidebarLangLbl = document.getElementById('sidebarLangLabel');
@@ -714,13 +766,41 @@
         const sidebarDarkLbl = document.getElementById('sidebarDarkModeLabel');
         if (sidebarDarkLbl) sidebarDarkLbl.textContent = t('sidebarDarkMode');
         const sidebarDarkToggle = document.getElementById('sidebarDarkModeToggle');
-        if (sidebarDarkToggle) sidebarDarkToggle.checked = !!settings.darkMode;
+        if (sidebarDarkToggle) sidebarDarkToggle.value = settings.theme || 'dark';
         
-        // Advanced segment labels in main sidebar
+        // Side rail settings elements
+        const sideRailCurrencyLbl = document.getElementById('sideRailCurrencyLabel');
+        if (sideRailCurrencyLbl) sideRailCurrencyLbl.textContent = t('currencyLabel');
+        const sideRailLangLbl = document.getElementById('sideRailLangLabel');
+        if (sideRailLangLbl) sideRailLangLbl.textContent = t('langLabel');
+        const sideRailDarkLbl = document.getElementById('sideRailDarkModeLabel');
+        if (sideRailDarkLbl) sideRailDarkLbl.textContent = t('sidebarDarkMode');
+        const sideRailDarkToggle = document.getElementById('sideRailDarkModeToggle');
+        if (sideRailDarkToggle) sideRailDarkToggle.value = settings.theme || 'dark';
+        const layoutModeLabel = document.getElementById('layoutModeLabel');
+        if (layoutModeLabel) layoutModeLabel.textContent = t('layoutModeLabel');
+        const layoutModeToggle = document.getElementById('layoutModeToggle');
+        if (layoutModeToggle) layoutModeToggle.value = settings.layoutMode || 'grid';
+        const sideRailAdvancedLbl = document.getElementById('sideRailAdvancedLabel');
+        if (sideRailAdvancedLbl) sideRailAdvancedLbl.textContent = t('labelAdvanced');
+        const sideRailExportJsonBtn = document.getElementById('sideRailExportJsonBtn');
+        if (sideRailExportJsonBtn) sideRailExportJsonBtn.textContent = '💾 ' + t('btnExportJson');
+        const sideRailExportTxtBtn = document.getElementById('sideRailExportTxtBtn');
+        if (sideRailExportTxtBtn) sideRailExportTxtBtn.textContent = '📝 ' + t('btnExportTxt');
+        const sideRailImportDataBtn = document.getElementById('sideRailImportDataBtn');
+        if (sideRailImportDataBtn) sideRailImportDataBtn.textContent = '📥 ' + t('btnImportData');
+        const sideRailResetAllDataBtn = document.getElementById('sideRailResetAllDataBtn');
+        if (sideRailResetAllDataBtn) sideRailResetAllDataBtn.textContent = t('resetAllDataBtn');
+        const sideRailCurrencySel = document.getElementById('sideRailCurrencySelect');
+        if (sideRailCurrencySel) sideRailCurrencySel.value = settings.currency;
+        const sideRailLangSel = document.getElementById('sideRailLangSelect');
+        if (sideRailLangSel) sideRailLangSel.value = currentLang;
+        
+        // Export/Import buttons in Settings
         const sidebarAdvancedLabel = document.getElementById('sidebarAdvancedLabel');
         if (sidebarAdvancedLabel) sidebarAdvancedLabel.textContent = t('labelAdvanced');
-        const exportJsonAdvBtn = document.getElementById('exportJsonAdvBtn');
-        if (exportJsonAdvBtn) exportJsonAdvBtn.textContent = '💾 ' + t('btnExportJson');
+        const exportJsonBtn = document.getElementById('exportJsonBtn');
+        if (exportJsonBtn) exportJsonBtn.textContent = '💾 ' + t('btnExportJson');
         const exportTxtBtn = document.getElementById('exportTxtBtn');
         if (exportTxtBtn) exportTxtBtn.textContent = '📝 ' + t('btnExportTxt');
         const importDataBtn = document.getElementById('importDataBtn');
@@ -758,22 +838,18 @@
         if (menuAiHeader) menuAiHeader.textContent = t('menuAiHeader');
         const aiChatBtn = document.getElementById('aiChatBtn');
         if (aiChatBtn) aiChatBtn.textContent = t('menuAiChat');
-        const prediksiBtn = document.getElementById('prediksiBtn');
-        if (prediksiBtn) prediksiBtn.textContent = t('menuPrediction');
+        const menuGoalsHeader = document.getElementById('menuGoalsHeader');
+        if (menuGoalsHeader) menuGoalsHeader.textContent = t('menuGoalsHeader');
         const showChartBtn = document.getElementById('showChartBtn');
         if (showChartBtn) showChartBtn.textContent = t('menuChart');
-        const menuDataHeader = document.getElementById('menuDataHeader');
-        if (menuDataHeader) menuDataHeader.textContent = t('menuDataHeader');
+        const prediksiBtn = document.getElementById('prediksiBtn');
+        if (prediksiBtn) prediksiBtn.textContent = t('menuPrediction');
         const historyBtn = document.getElementById('historyBtn');
         if (historyBtn) historyBtn.textContent = t('menuHistory');
         const menuSettingHeader = document.getElementById('menuSettingHeader');
         if (menuSettingHeader) menuSettingHeader.textContent = t('menuSettingHeader');
         const logoutBtn = document.getElementById('logoutBtn');
         if (logoutBtn) logoutBtn.textContent = t('menuLogout');
-        const randomBtn = document.getElementById('randomChallenge');
-        if (randomBtn) randomBtn.textContent = t('menuRandomChallenge');
-        const motivationBtn = document.getElementById('motivationQuote');
-        if (motivationBtn) motivationBtn.textContent = t('menuMotivationQuote');
         const emptyStateMsg = document.getElementById('emptyStateMsg');
         if (emptyStateMsg) emptyStateMsg.textContent = t('emptyStateMsg');
         const aiInput = document.getElementById('aiInput');
@@ -810,7 +886,9 @@
             if (btxt) btxt.textContent = t(busyOv.dataset.messageKey);
         }
         if (document.getElementById('main-app')?.style.display === 'block') {
-            renderMainUI();
+            // Debounce renderMainUI for performance
+            if (langChangeTimeout) clearTimeout(langChangeTimeout);
+            langChangeTimeout = setTimeout(() => renderMainUI(), 100);
         }
         updateLoginCooldownUI();
     }
@@ -937,7 +1015,11 @@
             try {
                 const parsed = JSON.parse(storedSettings);
                 if (parsed && typeof parsed === 'object') {
-                    settings = Object.assign({ darkMode: true, currency: 'IDR' }, parsed);
+                    settings = Object.assign({ theme: 'dark', currency: 'IDR' }, parsed);
+                    // Migrate old boolean darkMode to string theme
+                    if (parsed.darkMode !== undefined && parsed.theme === undefined) {
+                        settings.theme = parsed.darkMode ? 'dark' : 'light';
+                    }
                 }
             } catch (e) {}
         }
@@ -970,10 +1052,22 @@
         }, DEBOUNCE_DELAY);
     }
     
+    // Batch localStorage writes to reduce I/O operations
+    function batchLocalStorageWrites(updates) {
+        if (!updates || Object.keys(updates).length === 0) return;
+        try {
+            Object.keys(updates).forEach(key => {
+                localStorage.setItem(key, updates[key]);
+            });
+        } catch (e) {
+            console.error("Batch save failed:", e);
+        }
+    }
+    
     function saveUser() { if(currentUser) localStorage.setItem('nabung_user', JSON.stringify(currentUser)); else localStorage.removeItem('nabung_user'); }
     function saveSettings() { localStorage.setItem('nabung_settings', JSON.stringify(settings)); applyTheme(); }
     function applyTheme() {
-        if(settings.darkMode) document.body.classList.remove('light');
+        if(settings.theme === 'dark') document.body.classList.remove('light');
         else document.body.classList.add('light');
     }
 
@@ -1038,7 +1132,12 @@
         
         const toast = document.createElement('div');
         toast.className = 'toast-notification';
-        toast.innerHTML = '<span>✓</span><span>' + msg + '</span>';
+        const checkSpan = document.createElement('span');
+        checkSpan.textContent = '✓';
+        const msgSpan = document.createElement('span');
+        msgSpan.textContent = msg;
+        toast.appendChild(checkSpan);
+        toast.appendChild(msgSpan);
         
         document.body.appendChild(toast);
         
@@ -1059,11 +1158,26 @@
         const modal = document.getElementById('globalModal');
         const modalContent = document.getElementById('modalContent');
         if (isHtml) {
-            modalContent.innerHTML = content;
-            // Fix for Chart Close button: Attach event listener to closeChartModal if it exists
-            const chartCloseBtn = document.getElementById('closeChartModal');
-            if (chartCloseBtn) {
-                chartCloseBtn.addEventListener('click', () => modal.classList.remove('active'));
+            // Only allow specific safe HTML for charts
+            if (content.includes('<canvas')) {
+                modalContent.innerHTML = content;
+                const chartCloseBtn = document.getElementById('closeChartModal');
+                if (chartCloseBtn) {
+                    chartCloseBtn.addEventListener('click', () => modal.classList.remove('active'));
+                }
+            } else {
+                // Fall back to text content for safety
+                modalContent.innerHTML = '';
+                const msg = document.createElement('div');
+                msg.textContent = content.replace(/<[^>]*>/g, ''); // Strip all HTML tags
+                msg.style.whiteSpace = 'pre-line';
+                const close = document.createElement('button');
+                close.id = 'closeModalBtn';
+                close.className = 'btn-outline';
+                close.type = 'button';
+                close.textContent = t('legalClose');
+                modalContent.appendChild(msg);
+                modalContent.appendChild(close);
             }
         } else {
             modalContent.innerHTML = '';
@@ -1211,21 +1325,43 @@
 
     function renderMainUI() {
         const grid = document.getElementById('targetsGrid');
-        const emptyMsg = document.getElementById('emptyStateMsg');
-        if(!targets.length) {
-            grid.replaceChildren();
-            emptyMsg.style.display = 'block';
-            emptyMsg.textContent = t('emptyStateMsg');
-            return;
+        if (!grid) return;
+        // Apply grid-mode or freeform-mode class based on layout mode
+        if (settings.layoutMode === 'grid') {
+            grid.classList.add('grid-mode');
+            grid.classList.remove('freeform-mode');
+        } else if (settings.layoutMode === 'freeform') {
+            grid.classList.add('freeform-mode');
+            grid.classList.remove('grid-mode');
+        } else {
+            grid.classList.remove('grid-mode');
+            grid.classList.remove('freeform-mode');
         }
-        emptyMsg.style.display = 'none';
         const frag = document.createDocumentFragment();
-        targets.forEach(function (target) {
-            const percent = (target.collected / target.targetNominal) * 100;
+        // Get hidden cards from localStorage
+        const hiddenCards = JSON.parse(localStorage.getItem('hidden_cards') || '[]');
+        // Sort targets based on layout mode
+        const sortedTargets = [...targets].sort((a, b) => {
+            // Pinned cards always first
+            if (a.pinned && !b.pinned) return -1;
+            if (!a.pinned && b.pinned) return 1;
+            // For grid mode, respect position property (for drag-and-drop swaps)
+            if (settings.layoutMode === 'grid') {
+                return (a.position || 0) - (b.position || 0);
+            }
+            // For freeform mode, sort by ID (default)
+            return a.id - b.id;
+        });
+        sortedTargets.forEach(function (target) {
+            if (!currentUser) return;
+            // Skip rendering hidden cards
+            if (hiddenCards.includes(target.id)) return;
+            const collected = transactions.filter(t => t.targetId === target.id).reduce((sum, t) => sum + t.amount, 0);
+            const percent = target.targetNominal > 0 ? (collected / target.targetNominal) * 100 : 0;
             let remainingDays = null;
-            if (target.deadline && target.deadline.trim() !== '') {
-                const deadlineDate = new Date(target.deadline);
+            if (target.deadline) {
                 const today = new Date();
+                const deadlineDate = new Date(target.deadline);
                 today.setHours(0,0,0,0);
                 const diffTime = deadlineDate - today;
                 const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
@@ -1235,6 +1371,69 @@
             const card = document.createElement('div');
             card.className = 'target-card';
             card.dataset.id = String(target.id);
+
+            // Card header with close and pin buttons
+            const cardHeader = document.createElement('div');
+            cardHeader.className = 'card-header';
+            cardHeader.style.display = 'flex';
+            cardHeader.style.justifyContent = 'space-between';
+            cardHeader.style.alignItems = 'center';
+            cardHeader.style.marginBottom = '8px';
+
+            const leftHeader = document.createElement('div');
+            const pinBtn = document.createElement('button');
+            pinBtn.className = 'pin-btn';
+            pinBtn.type = 'button';
+            pinBtn.textContent = target.pinned ? '📌' : '📍';
+            pinBtn.title = target.pinned ? 'Unpin' : 'Pin';
+            pinBtn.addEventListener('click', function (e) {
+                e.stopPropagation();
+                togglePin(target.id);
+            });
+            leftHeader.appendChild(pinBtn);
+
+            const rightHeader = document.createElement('div');
+            rightHeader.style.display = 'flex';
+            rightHeader.style.gap = '4px';
+
+            const closeBtn = document.createElement('button');
+            closeBtn.className = 'close-card-btn';
+            closeBtn.type = 'button';
+            closeBtn.textContent = '×';
+            closeBtn.title = 'Close';
+            closeBtn.addEventListener('click', function (e) {
+                e.stopPropagation();
+                hideCard(target.id);
+            });
+            rightHeader.appendChild(closeBtn);
+
+            const dragHandle = document.createElement('div');
+            dragHandle.className = 'drag-handle';
+            dragHandle.textContent = '⋮⋮';
+            dragHandle.title = 'Drag to move';
+            rightHeader.appendChild(dragHandle);
+
+            // Make card draggable
+            card.setAttribute('draggable', 'true');
+            card.addEventListener('dragstart', handleDragStart);
+            card.addEventListener('dragend', handleDragEnd);
+            card.addEventListener('dragover', handleDragOver);
+            card.addEventListener('drop', handleDrop);
+
+            cardHeader.appendChild(leftHeader);
+            cardHeader.appendChild(rightHeader);
+            card.appendChild(cardHeader);
+
+            // Apply absolute positioning in Freeform mode
+            if (settings.layoutMode === 'freeform' && target.x !== null && target.y !== null) {
+                card.style.left = target.x + 'px';
+                card.style.top = target.y + 'px';
+            } else if (settings.layoutMode === 'freeform') {
+                // Default position if not set
+                const index = sortedTargets.indexOf(target);
+                card.style.left = (index % 3) * 280 + 'px';
+                card.style.top = Math.floor(index / 3) * 350 + 'px';
+            }
 
             // Image or Icon display
             if (target.image) {
@@ -1334,6 +1533,214 @@
             frag.appendChild(card);
         });
         grid.replaceChildren(frag);
+
+        // Toggle empty state message visibility based on visible targets
+        const emptyStateMsg = document.getElementById('emptyStateMsg');
+        const visibleTargets = sortedTargets.filter(t => !hiddenCards.includes(t.id));
+        if (emptyStateMsg) {
+            if (visibleTargets.length === 0) {
+                emptyStateMsg.style.display = 'block';
+            } else {
+                emptyStateMsg.style.display = 'none';
+            }
+        }
+
+        // Add drop zone event listeners to grid container for Freeform mode
+        if (settings.layoutMode === 'freeform') {
+            grid.addEventListener('dragover', handleGridDragOver);
+            grid.addEventListener('drop', handleGridDrop);
+        } else {
+            grid.removeEventListener('dragover', handleGridDragOver);
+            grid.removeEventListener('drop', handleGridDrop);
+        }
+    }
+
+    function handleGridDragOver(e) {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+        return false;
+    }
+
+    function handleGridDrop(e) {
+        e.preventDefault();
+        e.stopPropagation();
+
+        const draggedTarget = targets.find(t => t.id === parseInt(draggedCardId));
+
+        if (settings.layoutMode === 'freeform' && draggedTarget) {
+            // Calculate drop position relative to grid container
+            const grid = document.getElementById('targetsGrid');
+            const rect = grid.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+
+            // Check for collision and find non-overlapping position
+            const safePosition = findNonOverlappingPosition(x, y, draggedTarget.id);
+
+            // Update target coordinates
+            draggedTarget.x = safePosition.x;
+            draggedTarget.y = safePosition.y;
+
+            saveTargets();
+            renderMainUI();
+        }
+
+        return false;
+    }
+
+    function togglePin(id) {
+        const target = targets.find(t => t.id === id);
+        if(target) {
+            target.pinned = !target.pinned;
+            saveTargets();
+            renderMainUI();
+        }
+    }
+
+    function hideCard(id) {
+        const card = document.querySelector(`.target-card[data-id="${id}"]`);
+        if(card) {
+            card.style.display = 'none';
+            // Store hidden state in localStorage
+            const hiddenCards = JSON.parse(localStorage.getItem('hidden_cards') || '[]');
+            if(!hiddenCards.includes(id)) {
+                hiddenCards.push(id);
+                localStorage.setItem('hidden_cards', JSON.stringify(hiddenCards));
+            }
+        }
+    }
+
+    function showAllCards() {
+        const hiddenCards = JSON.parse(localStorage.getItem('hidden_cards') || '[]');
+        hiddenCards.forEach(id => {
+            const card = document.querySelector(`.target-card[data-id="${id}"]`);
+            if(card) card.style.display = '';
+        });
+        localStorage.removeItem('hidden_cards');
+    }
+
+    function checkCollision(x, y, targetId, cardWidth = 260, cardHeight = 320) {
+        const margin = 10; // Minimum spacing between cards
+        for (const target of targets) {
+            if (target.id === targetId) continue;
+            if (target.x === null || target.y === null) continue;
+
+            // Check if the new position would overlap with existing card
+            const xOverlap = x < target.x + cardWidth + margin && x + cardWidth + margin > target.x;
+            const yOverlap = y < target.y + cardHeight + margin && y + cardHeight + margin > target.y;
+
+            if (xOverlap && yOverlap) {
+                return true; // Collision detected
+            }
+        }
+        return false; // No collision
+    }
+
+    function findNonOverlappingPosition(x, y, targetId, cardWidth = 260, cardHeight = 320) {
+        let newX = x;
+        let newY = y;
+        let attempts = 0;
+        const maxAttempts = 50;
+        const step = 20;
+
+        while (checkCollision(newX, newY, targetId, cardWidth, cardHeight) && attempts < maxAttempts) {
+            // Try positions in a spiral pattern
+            if (attempts % 2 === 0) {
+                newX += step;
+            } else {
+                newY += step;
+            }
+            attempts++;
+        }
+
+        return { x: newX, y: newY };
+    }
+
+    let draggedCard = null;
+    let draggedCardId = null;
+    const GRID_SIZE = 20; // Snap to grid size in pixels
+
+    function handleDragStart(e) {
+        draggedCard = this;
+        draggedCardId = this.dataset.id;
+        this.classList.add('dragging');
+        // Add dragging class to grid container to show grid overlay
+        const grid = document.getElementById('targetsGrid');
+        if (grid && settings.layoutMode === 'grid') {
+            grid.classList.add('dragging');
+        }
+        e.dataTransfer.effectAllowed = 'move';
+        e.dataTransfer.setData('text/plain', this.dataset.id);
+    }
+
+    function handleDragEnd(e) {
+        this.classList.remove('dragging');
+        // Remove dragging class from grid container to hide grid overlay
+        const grid = document.getElementById('targetsGrid');
+        if (grid) {
+            grid.classList.remove('dragging');
+        }
+        draggedCard = null;
+        draggedCardId = null;
+    }
+
+    function handleDragOver(e) {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+        return false;
+    }
+
+    function handleDrop(e) {
+        e.preventDefault();
+        e.stopPropagation();
+
+        const draggedTarget = targets.find(t => t.id === parseInt(draggedCardId));
+
+        if (settings.layoutMode === 'freeform' && draggedTarget) {
+            // Calculate drop position relative to grid container
+            const grid = document.getElementById('targetsGrid');
+            const rect = grid.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+
+            // Check for collision and find non-overlapping position
+            const safePosition = findNonOverlappingPosition(x, y, draggedTarget.id);
+
+            // Update target coordinates
+            draggedTarget.x = safePosition.x;
+            draggedTarget.y = safePosition.y;
+
+            saveTargets();
+            renderMainUI();
+        } else if (draggedCard !== this && draggedCardId !== this.dataset.id) {
+            // Grid mode: swap positions
+            const targetTarget = targets.find(t => t.id === parseInt(this.dataset.id));
+
+            if (draggedTarget && targetTarget) {
+                const draggedIndex = targets.indexOf(draggedTarget);
+                const targetIndex = targets.indexOf(targetTarget);
+
+                if (draggedIndex !== -1 && targetIndex !== -1) {
+                    // Swap positions in the array
+                    const temp = targets[draggedIndex];
+                    targets.splice(draggedIndex, 1);
+                    targets.splice(targetIndex, 0, temp);
+
+                    // Update position property for grid mode
+                    if (settings.layoutMode === 'grid') {
+                        // Reassign positions based on new array order
+                        targets.forEach((t, idx) => {
+                            t.position = idx;
+                        });
+                    }
+
+                    saveTargets();
+                    renderMainUI();
+                }
+            }
+        }
+
+        return false;
     }
 
     function completeTarget(id) {
@@ -1342,7 +1749,17 @@
             target.completed = true;
             target.collected = target.targetNominal;
             saveTargets();
-            canvasConfetti({ particleCount: 150, spread: 70, origin: { y: 0.6 }, colors: ['#ff3366', '#ffaa44'] });
+            // Lazy load canvas-confetti only when needed
+            if (typeof canvasConfetti === 'undefined') {
+                const script = document.createElement('script');
+                script.src = 'https://cdn.jsdelivr.net/npm/canvas-confetti@1';
+                script.onload = () => {
+                    canvasConfetti({ particleCount: 150, spread: 70, origin: { y: 0.6 }, colors: ['#ff3366', '#ffaa44'] });
+                };
+                document.head.appendChild(script);
+            } else {
+                canvasConfetti({ particleCount: 150, spread: 70, origin: { y: 0.6 }, colors: ['#ff3366', '#ffaa44'] });
+            }
             renderMainUI();
             showToast(t('targetReachedToast'));
         }
@@ -1382,8 +1799,8 @@
         modalContent.appendChild(closeBtn);
         modal.classList.add('active');
         document.getElementById('confirmSetor').onclick = () => {
-            let amount = parseFloat(document.getElementById('setorAmount').value);
-            if(isNaN(amount) || amount <=0) { alert(t('invalidAmount')); return; }
+            let amount = validateNumericInput(document.getElementById('setorAmount').value, 1, Number.MAX_SAFE_INTEGER);
+            if(amount === null) { alert(t('invalidAmount')); return; }
             const note = sanitizeTextInput(document.getElementById('setorNote').value, 240);
             target.collected = Math.min(target.targetNominal, target.collected + amount);
             transactions.unshift({ targetId: target.id, amount, date: new Date().toISOString(), note });
@@ -1397,29 +1814,38 @@
         document.getElementById('closeModalBtn').onclick = () => modal.classList.remove('active');
     }
 
-    // Image compression helper (resize + quality reduction for localStorage efficiency)
-    function compressImageToBase64(file, maxWidth = 400, maxHeight = 300, quality = 0.7) {
+    // Image compression helper (async with requestIdleCallback for better mobile performance)
+    function compressImageToBase64(file, maxWidth = 400, maxHeight = 300, quality = 0.6) {
         return new Promise(function(resolve, reject) {
             const reader = new FileReader();
             reader.onload = function(e) {
                 const img = new Image();
                 img.onload = function() {
-                    const canvas = document.createElement('canvas');
-                    let width = img.width;
-                    let height = img.height;
-                    if (width > maxWidth) {
-                        height = Math.floor(height * (maxWidth / width));
-                        width = maxWidth;
+                    // Use requestIdleCallback to avoid blocking main thread on mobile
+                    const processImage = function() {
+                        const canvas = document.createElement('canvas');
+                        let width = img.width;
+                        let height = img.height;
+                        if (width > maxWidth) {
+                            height = Math.floor(height * (maxWidth / width));
+                            width = maxWidth;
+                        }
+                        if (height > maxHeight) {
+                            width = Math.floor(width * (maxHeight / height));
+                            height = maxHeight;
+                        }
+                        canvas.width = width;
+                        canvas.height = height;
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(img, 0, 0, width, height);
+                        resolve(canvas.toDataURL('image/jpeg', quality));
+                    };
+                    
+                    if ('requestIdleCallback' in window) {
+                        requestIdleCallback(() => processImage(), { timeout: 2000 });
+                    } else {
+                        setTimeout(processImage, 0);
                     }
-                    if (height > maxHeight) {
-                        width = Math.floor(width * (maxHeight / height));
-                        height = maxHeight;
-                    }
-                    canvas.width = width;
-                    canvas.height = height;
-                    const ctx = canvas.getContext('2d');
-                    ctx.drawImage(img, 0, 0, width, height);
-                    resolve(canvas.toDataURL('image/jpeg', quality));
                 };
                 img.onerror = reject;
                 img.src = e.target.result;
@@ -1437,7 +1863,7 @@
             <input id="targetName" placeholder="${escapeHtml(t('targetNamePlaceholder'))}" style="display:block;width:100%;margin-bottom:10px;" />
             <label for="targetDesc" style="display:block;text-align:left;margin-bottom:5px;margin-top:2px;">${escapeHtml(t('targetDescLabel'))}</label>
             <textarea id="targetDesc" placeholder="${escapeHtml(t('targetDescPlaceholder'))}" style="display:block;width:100%;margin-bottom:10px;"></textarea>
-            <label class="image-upload-label" for="targetImage">${escapeHtml('Upload Gambar (opsional)')}</label>
+            <label class="image-upload-label" for="targetImage">${escapeHtml(t('uploadImage'))} (${escapeHtml(t('optional'))})</label>
             <input id="targetImage" type="file" accept="image/*" style="display:block;width:100%;margin-bottom:10px;" />
             <div id="imagePreviewContainer" class="image-preview-container" style="display:none;"></div>
             <input id="targetAmount" type="number" placeholder="${escapeHtml(t('targetAmountPlaceholder'))}" style="display:block;width:100%;margin-bottom:10px;" />
@@ -1482,18 +1908,22 @@
         document.getElementById('createTargetBtn').onclick = () => {
             const name = sanitizeTextInput(document.getElementById('targetName').value, 80);
             const desc = sanitizeTextInput(document.getElementById('targetDesc').value, 300);
-            const nominal = parseFloat(document.getElementById('targetAmount').value);
+            const nominal = validateNumericInput(document.getElementById('targetAmount').value, 1, Number.MAX_SAFE_INTEGER);
             const schedule = document.getElementById('targetSchedule').value;
-            const routineAmount = parseFloat(document.getElementById('routineAmount').value);
+            const routineAmount = validateNumericInput(document.getElementById('routineAmount').value, 0, Number.MAX_SAFE_INTEGER);
             const deadline = document.getElementById('targetDeadline').value;
-            if(!name || isNaN(nominal) || nominal <=0) { alert(t('createTargetInvalid')); return; }
+            if(!name || nominal === null) { alert(t('createTargetInvalid')); return; }
             const newId = Date.now();
             targets.push({
                 id: newId, name, desc, targetNominal: nominal, collected: 0,
                 deadline: deadline || null, completed: false, schedule: schedule,
                 routineAmount: isNaN(routineAmount) ? 0 : routineAmount,
                 image: currentBase64Image || null,
-                createdAt: new Date().toISOString()
+                createdAt: new Date().toISOString(),
+                position: targets.length, // Add position for custom ordering
+                pinned: false,
+                x: null, // x coordinate for freeform mode
+                y: null  // y coordinate for freeform mode
             });
             saveTargets();
             renderMainUI();
@@ -1514,7 +1944,7 @@
             <input id="editTargetName" value="${escapeHtml(target.name)}" style="display:block;width:100%;margin-bottom:10px;" />
             <label for="editTargetDesc" style="display:block;text-align:left;margin-bottom:5px;margin-top:2px;">${escapeHtml(t('targetDescLabel'))}</label>
             <textarea id="editTargetDesc" style="display:block;width:100%;margin-bottom:10px;">${escapeHtml(target.desc || '')}</textarea>
-            <label class="image-upload-label" for="editTargetImage">Ganti Gambar (opsional)</label>
+            <label class="image-upload-label" for="editTargetImage">${escapeHtml(t('uploadImage'))} (${escapeHtml(t('optional'))})</label>
             <input id="editTargetImage" type="file" accept="image/*" style="display:block;width:100%;margin-bottom:10px;" />
             <div id="editImagePreviewContainer" class="image-preview-container"></div>
             <input id="editTargetAmount" type="number" value="${target.targetNominal}" placeholder="${escapeHtml(t('targetAmountPlaceholder'))}" style="display:block;width:100%;margin-bottom:10px;" />
@@ -1562,11 +1992,11 @@
         document.getElementById('saveEditTargetBtn').onclick = () => {
             const name = sanitizeTextInput(document.getElementById('editTargetName').value, 80);
             const desc = sanitizeTextInput(document.getElementById('editTargetDesc').value, 300);
-            const nominal = parseFloat(document.getElementById('editTargetAmount').value);
+            const nominal = validateNumericInput(document.getElementById('editTargetAmount').value, 1, Number.MAX_SAFE_INTEGER);
             const schedule = document.getElementById('editTargetSchedule').value;
-            const routineAmount = parseFloat(document.getElementById('editRoutineAmount').value);
+            const routineAmount = validateNumericInput(document.getElementById('editRoutineAmount').value, 0, Number.MAX_SAFE_INTEGER);
             const deadline = document.getElementById('editTargetDeadline').value;
-            if(!name || isNaN(nominal) || nominal <=0) { alert(t('createTargetInvalid')); return; }
+            if(!name || nominal === null) { alert(t('createTargetInvalid')); return; }
             
             // Update existing target
             target.name = name;
@@ -1638,13 +2068,13 @@
             </style>
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
                 <h3 id="aiChatTitle" style="color: #ff3366;">${escapeHtml(t('aiTitle'))}</h3>
-                <button id="closeAIChat" style="background: none; border: none; color: white; font-size: 24px; cursor: pointer;">&times;</button>
+                <button id="closeAIChat" style="background: none; border: none; font-size: 24px; cursor: pointer;">&times;</button>
             </div>
             <div style="margin-bottom: 16px;">
                 <label id="aiModelLabel">${escapeHtml(t('aiModelLabel'))}</label>
-                <select id="aiModelSelect" style="width: 100%; padding: 10px; border-radius: 28px; background: #1e1e2a; color: white; border: 1px solid #ff3366;">
+                <select id="aiModelSelect" style="width: 100%; padding: 10px; border-radius: 28px; border: 1px solid #ff3366;">
                     <option value="gemini">Google Gemini (gemini-2.5-flash)</option>
-                    <option value="groq">Groq (Llama 3 70B)</option>
+                    <option value="grok">Grok (Llama 3 70B)</option>
                     <option value="huggingface">HuggingFace (Mistral-7B)</option>
                 </select>
             </div>
@@ -1654,7 +2084,7 @@
                 <div style="font-size: 12px; color: #aaa; margin-top: 4px;">
                     <span id="aiKeyHint">${escapeHtml(t('aiApiKeyHint'))}</span>
                     <a href="https://aistudio.google.com/app/apikey" target="_blank" style="color: #ff3366;">Gemini</a> | 
-                    <a href="https://console.groq.com/keys" target="_blank" style="color: #ff3366;">Groq</a> | 
+                    <a href="https://console.x.ai/home" target="_blank" style="color: #ff3366;">Grok</a> | 
                     <a href="https://huggingface.co/settings/tokens" target="_blank" style="color: #ff3366;">HuggingFace</a>
                 </div>
             </div>
@@ -1675,14 +2105,14 @@
         const chatMessagesDiv = document.getElementById('chatMessages');
         const typingDiv = document.getElementById('typingIndicator');
         
-        // Load saved API key & model
+        // Load saved API key & model (with obfuscation)
         const savedApiKey = localStorage.getItem('ai_api_key');
         const savedModel = localStorage.getItem('ai_model');
-        if(savedApiKey) apiKeyInput.value = savedApiKey;
+        if(savedApiKey) apiKeyInput.value = deobfuscateApiKey(savedApiKey);
         if(savedModel) modelSelect.value = savedModel;
         
         modelSelect.addEventListener('change', () => localStorage.setItem('ai_model', modelSelect.value));
-        apiKeyInput.addEventListener('input', () => localStorage.setItem('ai_api_key', apiKeyInput.value));
+        apiKeyInput.addEventListener('input', () => localStorage.setItem('ai_api_key', obfuscateApiKey(apiKeyInput.value)));
         
         function addMessage(role, text) {
             const msgDiv = document.createElement('div');
@@ -1708,8 +2138,8 @@
                     const res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }) });
                     const data = await res.json();
                     return data.candidates?.[0]?.content?.parts?.[0]?.text || `Error: ${data.error?.message || 'Gagal'}`;
-                } else if(model === 'groq') {
-                    const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+                } else if(model === 'grok') {
+                    const res = await fetch('https://api.grok.com/openai/v1/chat/completions', {
                         method: 'POST', headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
                         body: JSON.stringify({ model: 'llama3-70b-8192', messages: [{ role: 'user', content: prompt }] })
                     });
@@ -1769,6 +2199,58 @@
         if (sidebar.classList.contains('open')) closeSidebar();
         else openSidebar();
     }
+    // Export TXT Report function for Google Keep copy-paste
+    function handleExportTxt() {
+        try {
+            let report = 'INFINITY SAVING - LAPORAN TARGET\n';
+            report += '===================================\n\n';
+            
+            if (targets.length === 0) {
+                report += 'Belum ada target nabung.\n';
+            } else {
+                targets.forEach((target, index) => {
+                    const remaining = target.targetNominal - target.collected;
+                    const routineAmount = target.routineAmount || 0;
+                    let etaDays = null;
+                    let etaMonths = null;
+                    if (routineAmount > 0) {
+                        etaDays = Math.ceil(remaining / routineAmount);
+                        etaMonths = (etaDays / 30).toFixed(1);
+                    }
+                    const percentage = target.targetNominal > 0 ? ((target.collected / target.targetNominal) * 100).toFixed(1) : 0;
+                    
+                    report += (index + 1) + '. ' + target.name + '\n';
+                    report += '   Target: ' + formatRupiah(target.targetNominal) + '\n';
+                    report += '   Terkumpul: ' + formatRupiah(target.collected) + ' (' + percentage + '%)\n';
+                    report += '   Sisa: ' + formatRupiah(remaining) + '\n';
+                    if (routineAmount > 0) {
+                        report += '   Setoran Rutin: ' + formatRupiah(routineAmount) + '\n';
+                    }
+                    if (etaDays !== null) {
+                        report += '   Estimasi: ' + etaDays + ' hari (' + etaMonths + ' bulan)\n';
+                    }
+                    if (target.description) {
+                        report += '   Deskripsi: ' + target.description + '\n';
+                    }
+                    report += '\n';
+                });
+            }
+            
+            report += '\n===================================\n';
+            report += 'Dibuat pada: ' + new Date().toLocaleString() + '\n';
+            
+            const blob = new Blob([report], { type: 'text/plain;charset=utf-8' });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = 'laporan-infinity-saving.txt';
+            a.click();
+            showToast(t('exportSuccess'));
+        } catch (error) {
+            console.error('Export Txt error:', error);
+            showToast('Export failed');
+        }
+    }
+
     // Set active navigation item for visual feedback
     function setActiveNavItem(element) {
         document.querySelectorAll('.menu-item').forEach(item => {
@@ -1812,6 +2294,7 @@
         newAiBtn.addEventListener('click', openAIChat);
         
         document.getElementById('prediksiBtn').onclick = () => updatePredictionTab();
+        
         // Chart instance tracking for memory leak prevention
         let chartInstance = null;
 
@@ -1822,16 +2305,33 @@
             let targetData = targets.map(t=>t.targetNominal);
             let html = `<canvas id="simpleChart" width="300" height="200"></canvas><button id="closeChartModal" class="btn-outline">${escapeHtml(t('legalClose'))}</button>`;
             showModalMsg(html, true);
-            setTimeout(()=>{
-                const ctx = document.getElementById('simpleChart')?.getContext('2d');
-                if(ctx) {
-                    // Destroy old chart instance to prevent memory leaks
-                    if (chartInstance) {
-                        chartInstance.destroy();
+            // Lazy load Chart.js only when needed
+            if (typeof Chart === 'undefined') {
+                const script = document.createElement('script');
+                script.src = 'https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js';
+                script.onload = () => {
+                    setTimeout(()=>{
+                        const ctx = document.getElementById('simpleChart')?.getContext('2d');
+                        if(ctx) {
+                            if (chartInstance) {
+                                chartInstance.destroy();
+                            }
+                            chartInstance = new Chart(ctx, { type:'bar', data:{ labels, datasets:[{label:t('chartCollectedLabel'), data:collectedData, backgroundColor:'#ff3366'},{label:t('chartTargetLabel'), data:targetData, backgroundColor:'#aaa'}] } });
+                        }
+                    },50);
+                };
+                document.head.appendChild(script);
+            } else {
+                setTimeout(()=>{
+                    const ctx = document.getElementById('simpleChart')?.getContext('2d');
+                    if(ctx) {
+                        if (chartInstance) {
+                            chartInstance.destroy();
+                        }
+                        chartInstance = new Chart(ctx, { type:'bar', data:{ labels, datasets:[{label:t('chartCollectedLabel'), data:collectedData, backgroundColor:'#ff3366'},{label:t('chartTargetLabel'), data:targetData, backgroundColor:'#aaa'}] } });
                     }
-                    chartInstance = new Chart(ctx, { type:'bar', data:{ labels, datasets:[{label:t('chartCollectedLabel'), data:collectedData, backgroundColor:'#ff3366'},{label:t('chartTargetLabel'), data:targetData, backgroundColor:'#aaa'}] } });
-                }
-            },50);
+                },50);
+            }
         };
         document.getElementById('historyBtn').onclick = () => {
             if(transactions.length===0) showModalMsg(t('noHistoryYet'));
@@ -1840,46 +2340,6 @@
                 showModalMsg(`${t('historyTitle')}\n${list}`);
             }
         };
-        // Export TXT Report function for Google Keep copy-paste
-        function handleExportTxt() {
-            let report = 'INFINITY SAVING - LAPORAN TARGET\n';
-            report += '===================================\n\n';
-            
-            if (targets.length === 0) {
-                report += 'Belum ada target nabung.\n';
-            } else {
-                targets.forEach((target, index) => {
-                    const { remaining, etaDays, etaMonths, routineAmount } = calculateProgress(target);
-                    const percentage = target.targetNominal > 0 ? ((target.collected / target.targetNominal) * 100).toFixed(1) : 0;
-                    
-                    report += (index + 1) + '. ' + target.name + '\n';
-                    report += '   Target: ' + formatRupiah(target.targetNominal) + '\n';
-                    report += '   Terkumpul: ' + formatRupiah(target.collected) + ' (' + percentage + '%)\n';
-                    report += '   Sisa: ' + formatRupiah(remaining) + '\n';
-                    if (routineAmount > 0) {
-                        report += '   Setoran Rutin: ' + formatRupiah(routineAmount) + '\n';
-                    }
-                    if (etaDays !== null) {
-                        report += '   Estimasi: ' + etaDays + ' hari (' + etaMonths + ' bulan)\n';
-                    }
-                    if (target.description) {
-                        report += '   Deskripsi: ' + target.description + '\n';
-                    }
-                    report += '\n';
-                });
-            }
-            
-            report += '\n===================================\n';
-            report += 'Dibuat pada: ' + new Date().toLocaleString() + '\n';
-            
-            const blob = new Blob([report], { type: 'text/plain;charset=utf-8' });
-            const a = document.createElement('a');
-            a.href = URL.createObjectURL(blob);
-            a.download = 'laporan-infinity-saving.txt';
-            a.click();
-            showToast(t('exportSuccess'));
-        }
-
         // Export JSON function
         function handleExportJson() {
             const data = { targets, transactions, settings };
@@ -1961,16 +2421,104 @@
         }
 
         
-        // Advanced Settings buttons event listeners
-        document.getElementById('exportJsonAdvBtn').onclick = function() {
-            handleExportJson();
-        };
-        document.getElementById('exportTxtBtn').onclick = function() {
-            handleExportTxt();
-        };
-        document.getElementById('importDataBtn').onclick = function() {
-            handleImportData();
-        };
+        // Export/Import buttons event listeners (if they exist in sidebar)
+        const exportJsonBtn = document.getElementById('exportJsonBtn');
+        if (exportJsonBtn) {
+            exportJsonBtn.onclick = function() {
+                handleExportJson();
+            };
+        }
+        const exportTxtBtn = document.getElementById('exportTxtBtn');
+        if (exportTxtBtn) {
+            exportTxtBtn.onclick = function() {
+                handleExportTxt();
+            };
+        }
+        const importDataBtn = document.getElementById('importDataBtn');
+        if (importDataBtn) {
+            importDataBtn.onclick = function() {
+                handleImportData();
+            };
+        }
+        
+        // Side rail settings menu toggle
+        const sideRailSettingsBtn = document.getElementById('sideRailSettingsBtn');
+        if (sideRailSettingsBtn) {
+            sideRailSettingsBtn.onclick = function() {
+                const menu = document.getElementById('sideRailSettingsMenu');
+                if (menu) {
+                    menu.style.display = menu.style.display === 'none' ? 'block' : 'none';
+                    if (menu.style.display === 'block') {
+                        setTimeout(() => menu.classList.add('open'), 10);
+                    } else {
+                        menu.classList.remove('open');
+                    }
+                }
+            };
+        }
+        
+        // Side rail settings controls
+        const sideRailCurrencySelect = document.getElementById('sideRailCurrencySelect');
+        if (sideRailCurrencySelect) {
+            sideRailCurrencySelect.addEventListener('change', function(e) {
+                settings.currency = e.target.value;
+                saveSettings();
+                renderMainUI();
+            });
+        }
+        const sideRailLangSelect = document.getElementById('sideRailLangSelect');
+        if (sideRailLangSelect) {
+            sideRailLangSelect.addEventListener('change', function(e) {
+                applyLanguage(e.target.value);
+            });
+        }
+        const sideRailDarkModeToggle = document.getElementById('sideRailDarkModeToggle');
+        if (sideRailDarkModeToggle) {
+            sideRailDarkModeToggle.addEventListener('change', function(e) {
+                settings.theme = e.target.value;
+                saveSettings();
+                applyTheme();
+            });
+        }
+        const layoutModeToggle = document.getElementById('layoutModeToggle');
+        if (layoutModeToggle) {
+            layoutModeToggle.addEventListener('change', function(e) {
+                settings.layoutMode = e.target.value;
+                saveSettings();
+                renderMainUI();
+            });
+        }
+        const sideRailExportJsonBtn = document.getElementById('sideRailExportJsonBtn');
+        if (sideRailExportJsonBtn) {
+            sideRailExportJsonBtn.addEventListener('click', function() {
+                handleExportJson();
+            });
+        }
+        const sideRailExportTxtBtn = document.getElementById('sideRailExportTxtBtn');
+        if (sideRailExportTxtBtn) {
+            sideRailExportTxtBtn.addEventListener('click', function() {
+                handleExportTxt();
+            });
+        }
+        const sideRailImportDataBtn = document.getElementById('sideRailImportDataBtn');
+        if (sideRailImportDataBtn) {
+            sideRailImportDataBtn.addEventListener('click', function() {
+                handleImportData();
+            });
+        }
+        const sideRailResetAllDataBtn = document.getElementById('sideRailResetAllDataBtn');
+        if (sideRailResetAllDataBtn) {
+            sideRailResetAllDataBtn.addEventListener('click', function() {
+                if(confirm(t('confirmReset'))) {
+                    targets = [];
+                    transactions = [];
+                    saveTargets();
+                    saveTransactions();
+                    renderMainUI();
+                    showToast(t('resetDone'));
+                }
+            });
+        }
         
         const sidebarCurrencySel = document.getElementById('sidebarCurrencySelect');
         if (sidebarCurrencySel) {
@@ -1978,7 +2526,9 @@
             sidebarCurrencySel.onchange = function (e) {
                 settings.currency = e.target.value;
                 saveSettings();
-                renderMainUI();
+                // Debounce renderMainUI for performance
+                if (currencyChangeTimeout) clearTimeout(currencyChangeTimeout);
+                currencyChangeTimeout = setTimeout(() => renderMainUI(), 100);
             };
         }
         const sidebarLangSel = document.getElementById('sidebarLangSelect');
@@ -1988,8 +2538,8 @@
         }
         const darkModeToggle = document.getElementById('sidebarDarkModeToggle');
         if (darkModeToggle) {
-            darkModeToggle.checked = !!settings.darkMode;
-            darkModeToggle.onchange = function (e) { settings.darkMode = !!e.target.checked; saveSettings(); applyTheme(); };
+            darkModeToggle.value = settings.theme || 'dark';
+            darkModeToggle.onchange = function (e) { settings.theme = e.target.value; saveSettings(); applyTheme(); };
         }
         const resetBtn = document.getElementById('resetAllDataBtn');
         if (resetBtn) {
@@ -2005,19 +2555,11 @@
             };
         }
         document.getElementById('logoutBtn').onclick = () => { logout(); };
-        document.getElementById('randomChallenge').onclick = () => { const rand = Math.floor(Math.random()*50000)+5000; showModalMsg(tWithParams('randomChallengeMsg', { amount: formatRupiah(rand) })); };
-        document.getElementById('motivationQuote').onclick = () => {
-            const quotes = Array.isArray(t('motivationQuotes')) ? t('motivationQuotes') : [];
-            const msg = quotes.length ? quotes[Math.floor(Math.random()*quotes.length)] : '';
-            showModalMsg(`✨ ${msg}`);
-        };
         
-        if(!document.getElementById('hamburgerMenu')) {
-            const hamburger = document.createElement('div');
-            hamburger.id = 'hamburgerMenu';
-            hamburger.textContent = '☰';
-            document.getElementById('sideRail')?.appendChild(hamburger);
-            hamburger.onclick = toggleSidebar;
+        // Hamburger menu event listener
+        const hamburger = document.getElementById('hamburgerMenu');
+        if (hamburger) {
+            hamburger.addEventListener('click', toggleSidebar);
         }
     }
 
@@ -2068,94 +2610,116 @@
     }
 
     // ======================= INFINITY ANIMATION & INIT =======================
-    function initInfinityAnimation() {
-        const canvas = document.getElementById('infinityCanvas');
-        const ctx = canvas.getContext('2d');
+    let lemniscateAnimationId = null;
+    let lemniscateParticles = [];
 
-        // Optimize for device pixel ratio (crisper + more consistent animation)
-        function resizeCanvas() {
-            const dpr = window.devicePixelRatio || 1;
-            const rect = canvas.getBoundingClientRect();
-            canvas.width = rect.width * dpr;
-            canvas.height = rect.height * dpr;
-            ctx.setTransform(1, 0, 0, 1, 0, 0);
-            ctx.scale(dpr, dpr);
-        }
-        resizeCanvas();
-        window.addEventListener('resize', resizeCanvas);
+    function initLemniscateAnimation() {
+        const SVG_NS = 'http://www.w3.org/2000/svg';
+        const config = {
+            particleCount: 50,
+            trailSpan: 0.25,
+            durationMs: 3000,
+            pulseDurationMs: 2400,
+            strokeWidth: 4.2,
+            lemniscateA: 26,
+            lemniscateBoost: 7
+        };
 
-        let startTime = null;
-        function draw(ts) {
-            if (!canvas) return;
-            if (!startTime) startTime = ts;
-            const elapsed = (ts - startTime) / 1000; // seconds
+        const group = document.getElementById('lemniscateGroup');
+        const path = document.getElementById('lemniscatePath');
+        if (!group || !path) return;
 
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
+        path.setAttribute('stroke-width', String(config.strokeWidth));
 
-            ctx.save();
-            ctx.beginPath();
-            ctx.strokeStyle = '#ff3366';
-            ctx.lineWidth = 3;
-            ctx.shadowBlur = 14;
-            ctx.shadowColor = '#ff3366';
-
-            // Smoother, infinitely interpolated path, and eased scale animation
-            const t = elapsed * 1.4; // slightly faster but smoother
-            const cx = canvas.width / (window.devicePixelRatio || 1) / 2;
-            const cy = canvas.height / (window.devicePixelRatio || 1) / 2;
-            const steps = 360;
-            const baseR = 70, baseA = 30;
-            const animScale = 1 + Math.sin(t) * 0.11 + Math.cos(t * 0.75) * 0.06;
-
-            for (let i = 0; i <= steps; i++) {
-                let u = (i / steps) * Math.PI * 2;
-                let x = cx + Math.sin(u) * baseR * animScale;
-                let y = cy + Math.sin(2 * u) * baseA * animScale;
-                if (i === 0) ctx.moveTo(x, y);
-                else ctx.lineTo(x, y);
-            }
-            ctx.closePath();
-            ctx.stroke();
-            ctx.restore();
-
-            requestAnimationFrame(draw);
-        }
-        requestAnimationFrame(draw);
-
-        // Store animation frame ID for cleanup
-        const animationLoop = { id: null };
-        function drawWithTracking(ts) {
-            if (!canvas) return;
-            draw(ts);
-        }
-        animationFrameId = requestAnimationFrame(function track(ts) {
-            if (!canvas) return;
-            draw(ts);
-            animationFrameId = requestAnimationFrame(track);
+        // Create particles
+        lemniscateParticles = Array.from({ length: config.particleCount }, () => {
+            const circle = document.createElementNS(SVG_NS, 'circle');
+            circle.setAttribute('fill', 'currentColor');
+            group.appendChild(circle);
+            return circle;
         });
 
-        // FAIL-SAFE LOADING: Ensure loading screen always hides even if errors occur
-        setTimeout(() => {
-            try {
-                hideLoading();
-            } catch (err) {
-                console.error('Error during hideLoading:', err);
-                // Force hide in case of error
-                const loadingScreen = document.getElementById('loading-screen');
-                if (loadingScreen) {
-                    loadingScreen.style.display = 'none';
-                }
-            }
-        }, 2200);
+        function normalizeProgress(progress) {
+            return ((progress % 1) + 1) % 1;
+        }
+
+        function getDetailScale(time) {
+            const pulseProgress = (time % config.pulseDurationMs) / config.pulseDurationMs;
+            const pulseAngle = pulseProgress * Math.PI * 2;
+            return 0.52 + ((Math.sin(pulseAngle + 0.55) + 1) / 2) * 0.48;
+        }
+
+        function point(progress, detailScale) {
+            const t = progress * Math.PI * 2;
+            const scale = config.lemniscateA + detailScale * config.lemniscateBoost;
+            const denom = 1 + Math.sin(t) ** 2;
+            return {
+                x: 50 + (scale * Math.cos(t)) / denom,
+                y: 50 + (scale * Math.sin(t) * Math.cos(t)) / denom,
+            };
+        }
+
+        function buildPath(detailScale, steps = 480) {
+            return Array.from({ length: steps + 1 }, (_, index) => {
+                const p = point(index / steps, detailScale);
+                return `${index === 0 ? 'M' : 'L'} ${p.x.toFixed(2)} ${p.y.toFixed(2)}`;
+            }).join(' ');
+        }
+
+        function getParticle(index, progress, detailScale) {
+            const tailOffset = index / (config.particleCount - 1);
+            const p = point(normalizeProgress(progress - tailOffset * config.trailSpan), detailScale);
+            const fade = Math.pow(1 - tailOffset, 0.56);
+            return {
+                x: p.x,
+                y: p.y,
+                radius: 0.9 + fade * 2.7,
+                opacity: 0.04 + fade * 0.96,
+            };
+        }
+
+        const startedAt = performance.now();
+
+        function render(now) {
+            const time = now - startedAt;
+            const progress = (time % config.durationMs) / config.durationMs;
+            const detailScale = getDetailScale(time);
+            path.setAttribute('d', buildPath(detailScale));
+            lemniscateParticles.forEach((node, index) => {
+                const particle = getParticle(index, progress, detailScale);
+                node.setAttribute('cx', particle.x.toFixed(2));
+                node.setAttribute('cy', particle.y.toFixed(2));
+                node.setAttribute('r', particle.radius.toFixed(2));
+                node.setAttribute('opacity', particle.opacity.toFixed(3));
+            });
+            lemniscateAnimationId = requestAnimationFrame(render);
+        }
+
+        lemniscateAnimationId = requestAnimationFrame(render);
+    }
+
+    function stopLemniscateAnimation() {
+        if (lemniscateAnimationId) {
+            cancelAnimationFrame(lemniscateAnimationId);
+            lemniscateAnimationId = null;
+        }
+        // Remove particles
+        lemniscateParticles.forEach(p => p.remove());
+        lemniscateParticles = [];
+    }
+
+    function initInfinityAnimation() {
+        initLemniscateAnimation();
     }
     
-    // Updated hideLoading with canvas cleanup
+    // Updated hideLoading with lemniscate animation cleanup
     function hideLoading() {
         const loadingScreen = document.getElementById('loading-screen');
         if (loadingScreen) {
             loadingScreen.style.opacity = '0';
             setTimeout(() => {
                 loadingScreen.style.display = 'none';
+                stopLemniscateAnimation();
                 if(currentUser) {
                     document.getElementById('auth-container').style.display = 'none';
                     document.getElementById('main-app').style.display = 'block';
@@ -2217,6 +2781,10 @@
         }
         if (pass.length < MIN_PASS_LEN) {
             setAuthError('registerError', t('errPassShort'));
+            return;
+        }
+        if (!validatePasswordStrength(pass)) {
+            setAuthError('registerError', 'Password must contain at least one letter and one digit');
             return;
         }
         if (pass !== conf) {
@@ -2289,6 +2857,12 @@
 
     document.getElementById('langSelect').addEventListener('change', function (e) {
         applyLanguage(e.target.value);
+    });
+
+    document.getElementById('loginThemeSelect').addEventListener('change', function (e) {
+        settings.theme = e.target.value;
+        saveSettings();
+        applyTheme();
     });
 
     document.getElementById('linkLegalTos').onclick = function () { openLegalModal('tos'); };
