@@ -23,8 +23,8 @@ Developed by **Zycresth** & **Fahmi-astronot**.
     * [Chart.js](https://www.chartjs.org/) (Data Visualization)
     * [Bcrypt.js](https://github.com/dcodeIO/bcrypt.js/) (Security/Hashing)
     * [Canvas-Confetti](https://github.com/catdad/canvas-confetti) (UX/Effects)
-    * [jsPDF](https://github.com/parallax/jsPDF) & [html2canvas](https://html2canvas.hertzen.com/) (Reporting)
-
+    * [math-curve-loaders](https://paidax01.github.io/math-curve-loaders/) (Loading Screen Animation)
+    
 ## 🤝 Contribution
 This project is a collaboration between **Zycresth** and **Fahmi-astronot**. Feel free to fork, open issues, or submit pull requests to help make *Infinity Saving* even better.
 
